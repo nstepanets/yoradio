@@ -5,7 +5,7 @@
  *  vs1053_ext.cpp
  *
  *  Created on: Jul 09.2017
- *  Updated on: Aug 15.2022
+ *  Updated on: Aug 16.2022
  *      Author: Wolle
  */
 #ifndef VS_PATCH_ENABLE
@@ -185,14 +185,14 @@ void Audio::control_mode_off()
 void Audio::control_mode_on()
 {
     sdog.takeMutex();
-    spi_VS1053->beginTransaction(VS1053_SPI_CTL);   // Prevent other SPI users
+    spi_VS1053->beginTransaction(VS1053_SPI);       // Prevent other SPI users
     DCS_HIGH();                                     // Bring slave in control mode
     CS_LOW();
 }
 void Audio::data_mode_on()
 {
     sdog.takeMutex();
-    spi_VS1053->beginTransaction(VS1053_SPI_DATA);  // Prevent other SPI users
+    spi_VS1053->beginTransaction(VS1053_SPI);       // Prevent other SPI users
     CS_HIGH();                                      // Bring slave in data mode
     DCS_LOW();
 }
@@ -307,8 +307,9 @@ void Audio::begin(){
     CS_HIGH();
     delay(170);
 
-    VS1053_SPI_CTL   = SPISettings( 250000, MSBFIRST, SPI_MODE0);
-    VS1053_SPI_DATA  = SPISettings(8000000, MSBFIRST, SPI_MODE0); // SPIDIV 10 -> 80/10=8.00 MHz
+    VS1053_SPI._clock    = 250000;
+    VS1053_SPI._bitOrder = MSBFIRST;
+    VS1053_SPI._dataMode = SPI_MODE0;
     // printDetails("Right after reset/startup");
     //loadUserCode(); // load in VS1053B if you want to play flac
     // Most VS1053 modules will start up in midi mode.  The result is that there is no audio
@@ -321,13 +322,14 @@ void Audio::begin(){
     write_register(SCI_AUDATA, 44100 + 1);                  // 44.1kHz + stereo
     // The next clocksetting allows SPI clocking at 5 MHz, 4 MHz is safe then.
     write_register(SCI_CLOCKF, 6 << 12);                    // Normal clock settings multiplyer 3.0=12.2 MHz
-    write_register(SCI_MODE, _BV (SM_SDINEW) | _BV(SM_LINE1));
-    // testComm("Fast SPI, Testing VS1053 read/write registers again... \n");
+    VS1053_SPI._clock = 4000000;
+	write_register(SCI_MODE, _BV (SM_SDINEW) | _BV(SM_LINE1));
+
     await_data_request();
     //set vu meter
     setVUmeter();
     m_endFillByte = wram_read(0x1E06) & 0xFF;
-    //  printDetails("After last clocksetting \n");
+
     if(VS_PATCH_ENABLE) loadUserCode(); // load in VS1053B if you want to play flac
     startSong();
 }
