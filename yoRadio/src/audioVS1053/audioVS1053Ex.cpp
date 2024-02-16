@@ -5,7 +5,7 @@
  *  vs1053_ext.cpp
  *
  *  Created on: Jul 09.2017
- *  Updated on: Oct 19.2022
+ *  Updated on: Oct 20.2022
  *      Author: Wolle
  */
 #ifndef VS_PATCH_ENABLE
@@ -1458,8 +1458,7 @@ const char* Audio::parsePlaylist_M3U(){
         // AUDIO_INFO("Entry in playlist found: %s", pl);
         pos = indexOf(m_playlistContent[i], "http", 0);                 // Search for "http"
         if(pos >= 0) {                                                  // Does URL contain "http://"?
-    //    log_e("%s pos=%i", m_playlistContent[i], pos);
-            host = m_playlistContent[i] + pos;                        // Yes, set new host
+            host = m_playlistContent[i] + pos;                          // Yes, set new host
             break;
         }
     }
@@ -1576,7 +1575,8 @@ const char* Audio::parsePlaylist_M3U8(){
             if(startsWith(m_playlistContent[i],"#EXT-X-STREAM-INF:")){
                 if(occurence > 0) break; // no more than one #EXT-X-STREAM-INF: (can have different BANDWIDTH)
                 occurence++;
-                if(!endsWith(m_playlistContent[i+1], "m3u8")){ // we have a new m3u8 playlist, skip to next line
+                if((!endsWith(m_playlistContent[i+1], "m3u8" ) && indexOf(m_playlistContent[i+1], "m3u8?") == -1)){
+                    // we have a new m3u8 playlist, skip to next line
                     int pos = indexOf(m_playlistContent[i], "CODECS=\"mp4a", 18);
                     // 'mp4a.40.01' AAC Main
                     // 'mp4a.40.02' AAC LC (Low Complexity)
@@ -1746,9 +1746,6 @@ size_t Audio::process_m3u8_ID3_Header(uint8_t* packet){
     size_t          id3Size;
     bool            m_f_unsync = false, m_f_exthdr = false;
     uint64_t        current_timestamp = 0;
-	
-	(void) m_f_unsync;        // [-Wunused-but-set-variable]
-    (void) current_timestamp; // [-Wunused-but-set-variable]
 	
 	(void) m_f_unsync;        // [-Wunused-but-set-variable]
     (void) current_timestamp; // [-Wunused-but-set-variable]
@@ -2091,7 +2088,7 @@ bool Audio::parseContentType(char* ct) {
     else if(!strcmp(ct, "audio/scpls"))      ct_val = CT_PLS;
     else if(!strcmp(ct, "audio/x-scpls"))    ct_val = CT_PLS;
     else if(!strcmp(ct, "application/pls+xml")) ct_val = CT_PLS;
-    else if(!strcmp(ct, "audio/mpegurl"))    ct_val = CT_M3U;
+    else if(!strcmp(ct, "audio/mpegurl")) {ct_val = CT_M3U; if(m_expectedPlsFmt == FORMAT_M3U8) ct_val = CT_M3U8;}
     else if(!strcmp(ct, "audio/x-mpegurl"))  ct_val = CT_M3U;
     else if(!strcmp(ct, "audio/ms-asf"))     ct_val = CT_ASX;
     else if(!strcmp(ct, "video/x-ms-asf"))   ct_val = CT_ASX;
@@ -3418,7 +3415,7 @@ bool Audio::ts_parsePacket(uint8_t* packet, uint8_t* packetStart, uint8_t* packe
         }
         *packetStart = 0;
         *packetLength = 0;
-        log_e("PES not found");
+        if(m_f_Log) log_i("PES not found");
         return false;
     }
     else if(pidsOfPMT.number) {
