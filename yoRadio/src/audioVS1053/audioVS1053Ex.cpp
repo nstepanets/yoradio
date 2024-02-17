@@ -5,7 +5,7 @@
  *  vs1053_ext.cpp
  *
  *  Created on: Jul 09.2017
- *  Updated on: Apr 08.2023
+ *  Updated on: May 20.2023
  *      Author: Wolle
  */
 #ifndef VS_PATCH_ENABLE
@@ -814,27 +814,21 @@ void Audio::processLocalFile() {
 void Audio::processWebStream() {
 
     const uint16_t  maxFrameSize = InBuff.getMaxBlockSize();    // every mp3/aac frame is not bigger
-    static bool     f_tmr_1s;
     static bool     f_stream;                                   // first audio data received
-    static uint8_t  cnt_slow;
     static uint32_t chunkSize;                                  // chunkcount read from stream
-    static uint32_t tmr_1s;                                     // timer 1 sec
-    static uint32_t loopCnt;                                    // count loops if clientbuffer is empty
 
     // first call, set some values to default  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     if(m_f_firstCall) { // runs only ont time per connection, prepare for start
         m_f_firstCall = false;
         f_stream = false;
-        cnt_slow = 0;
         chunkSize = 0;
-        loopCnt = 0;
-        tmr_1s = millis();
         m_metacount = m_metaint;
         readMetadata(0, true); // reset all static vars
     }
 
     if(getDatamode() != AUDIO_DATA) return;              // guard
     uint32_t availableBytes = _client->available();      // available from stream
+	
     // chunked data tramsfer - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     if(m_f_chunked && availableBytes){
         uint8_t readedBytes = 0;
@@ -846,26 +840,12 @@ void Audio::processWebStream() {
         if(m_metacount == 0) {chunkSize -= readMetadata(availableBytes); return;}
         availableBytes = min(availableBytes, m_metacount);
     }
-    // timer, triggers every second  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    if((tmr_1s + 1000) < millis()) {
-        f_tmr_1s = true;                                        // flag will be set every second for one loop only
-        tmr_1s = millis();
-    }
+ 
     // if the buffer is often almost empty issue a warning - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    if(InBuff.bufferFilled() > maxFrameSize) {f_tmr_1s = false; cnt_slow = 0; loopCnt = 0;}
-    if(f_tmr_1s){
-        cnt_slow ++;
-        if(cnt_slow > 50){cnt_slow = 0; AUDIO_INFO("slow stream, dropouts are possible");}
+    if(f_stream){
+        if(streamDetection(availableBytes)) return;
     }
-    // if the buffer can't filled for several seconds try a new connection - - - - - - - - - - - - - - - - - - - - - - -
-    if(f_stream && !availableBytes){
-        loopCnt++;
-        if(loopCnt > 200000) {              // wait several seconds
-            AUDIO_INFO("Stream lost -> try new connection");
-            connecttohost(m_lastHost);
-            return;
-        }
-    }
+	
     // buffer fill routine - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     if(availableBytes) {
         availableBytes = min(availableBytes, InBuff.writeSpace());
@@ -882,6 +862,14 @@ void Audio::processWebStream() {
             AUDIO_INFO("stream ready");
         }
         if(!f_stream) return;
+		if(m_codec == CODEC_OGG){ // log_i("determine correct codec here");
+            uint8_t codec = determineOggCodec(InBuff.getReadPtr(), maxFrameSize);
+            if(codec == CODEC_FLAC)   {m_codec = CODEC_FLAC;   return;}
+            if(codec == CODEC_OPUS)   {m_codec = CODEC_OPUS; AUDIO_INFO("can't play OPUS"); stopSong(); return;}
+            if(codec == CODEC_VORBIS) {m_codec = CODEC_VORBIS; return;}
+            stopSong();
+            return;
+        }
     }
 
     // play audio data - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1098,133 +1086,74 @@ void Audio::processWebStreamHLS() {
 }
 //---------------------------------------------------------------------------------------------------------------------
 void Audio::processWebFile(){
-    const uint16_t  maxFrameSize = InBuff.getMaxBlockSize();
-    int32_t         availableBytes = 0;                         // available bytes in stream
-    static bool     f_tmr_1s;
+    const uint32_t maxFrameSize = InBuff.getMaxBlockSize();     // every mp3/aac frame is not bigger
     static bool     f_stream;                                   // first audio data received
-    static int      bytesDecoded;
+    static bool f_webFileDataComplete;                          // all file data received
     static uint32_t byteCounter;                                // count received data
-    static uint32_t chunksize;                                  // chunkcount read from stream
-    static uint32_t tmr_1s;                                     // timer 1 sec
-    static uint32_t loopCnt;                                    // count loops if clientbuffer is empty
-    static uint32_t metacount;                                  // counts down bytes between metadata
-
+    static uint32_t chunkSize;                                  // chunkcount read from stream
+    static size_t   audioDataCount;                             // counts the decoded audiodata only
 
     // first call, set some values to default - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     if(m_f_firstCall) { // runs only ont time per connection, prepare for start
         m_f_firstCall = false;
+		m_t0 = millis();
+        f_webFileDataComplete = false;
         f_stream = false;
         byteCounter = 0;
-        chunksize = 0;
-        bytesDecoded = 0;
-        loopCnt = 0;
-        tmr_1s = millis();
-        m_t0 = millis();
-        metacount = m_metaint;
-        readMetadata(0, true); // reset all static vars
+        chunkSize = 0;
+        audioDataCount = 0;
     }
 
-    // timer, triggers every second - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    if((tmr_1s + 1000) < millis()) {
-        f_tmr_1s = true;                                        // flag will be set every second for one loop only
-        tmr_1s = millis();
+    if(!m_contentlength && !m_f_tts) {log_e("webfile without contentlength!"); stopSong(); return;} // guard
+
+    uint32_t availableBytes = _client->available(); // available from stream
+
+    // chunked data tramsfer - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    if(m_f_chunked){
+        uint8_t readedBytes = 0;
+        if(!chunkSize) chunkSize = chunkedDataTransfer(&readedBytes);
+        availableBytes = min(availableBytes, chunkSize);
+        if(m_f_tts) m_contentlength = chunkSize;
     }
 
-    availableBytes = _client->available();            // available from stream
-
-    // if we have chunked data transfer: get the chunksize- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    if(m_f_chunked && !m_chunkcount && availableBytes) { // Expecting a new chunkcount?
-        int b = _client->read();
-        if(b == '\r') return;
-        if(b == '\n'){
-            m_chunkcount = chunksize;
-            chunksize = 0;
-            if(m_f_tts){
-                m_contentlength = m_chunkcount; // tts has one chunk only
-                m_f_webfile = true;
-                m_f_chunked = false;
-            }
-            return;
-        }
-        // We have received a hexadecimal character.  Decode it and add to the result.
-        b = toupper(b) - '0';                       // Be sure we have uppercase
-        if(b > 9) b = b - 7;                        // Translate A..F to 10..15
-        chunksize = (chunksize << 4) + b;
-        return;
+    // if the buffer is often almost empty issue a warning - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    if(!f_webFileDataComplete && f_stream){
+        if(streamDetection(availableBytes)) return;
     }
 
-    // if we have metadata: get them - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    // if(!metacount && m_f_metadata && availableBytes){
-    //     int16_t b = _client->read();
-    //     if(b >= 0) {
-    //         if(m_f_chunked) m_chunkcount--;
-    //         if(readMetadata(b)) metacount = m_metaint;
-    //     }
-    //     return;
-    // }
-
-    // if the buffer is often almost empty issue a warning  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    if(InBuff.bufferFilled() < maxFrameSize && f_stream){
-        static uint8_t cnt_slow = 0;
-        cnt_slow ++;
-        if(f_tmr_1s) {
-            if(cnt_slow > 25 && audio_info) audio_info("slow stream, dropouts are possible");
-            f_tmr_1s = false;
-            cnt_slow = 0;
-        }
-    }
-
-    // if the buffer can't filled for several seconds try a new connection  - - - - - - - - - - - - - - - - - - - - - -
-    if(f_stream && !availableBytes){
-        loopCnt++;
-        if(loopCnt > 200000) {              // wait several seconds
-            loopCnt = 0;
-            if(audio_info) audio_info("Stream lost -> try new connection");
-            connecttohost(m_lastHost);
-        }
-    }
-    if(availableBytes) loopCnt = 0;
-
-
-    // buffer fill routine  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    if(true) { // statement has no effect
-        uint32_t bytesCanBeWritten = InBuff.writeSpace();
-        if(m_f_metadata) bytesCanBeWritten = min(metacount, bytesCanBeWritten);
-        if(m_f_chunked)  bytesCanBeWritten = min(m_chunkcount, bytesCanBeWritten);
-
-        int16_t bytesAddedToBuffer = 0;
-
-        if(psramFound()) if(bytesCanBeWritten > 4096) bytesCanBeWritten = 4096; // PSRAM throttle
-
-        if(m_streamType == ST_WEBFILE){
-            // normally there is nothing to do here, if byteCounter == contentLength
-            // then the file is completely read, but:
-            // m4a files can have more data  (e.g. pictures ..) after the audio Block
-            // therefore it is bad to read anything else (this can generate noise)
-            if(byteCounter + bytesCanBeWritten >= m_contentlength) bytesCanBeWritten = m_contentlength - byteCounter;
-        }
-
-        bytesAddedToBuffer = _client->read(InBuff.getWritePtr(), bytesCanBeWritten);
+    availableBytes = min((uint32_t)InBuff.writeSpace(), availableBytes);
+    availableBytes = min(m_contentlength - byteCounter, availableBytes);
+    if(m_audioDataSize) availableBytes = min(m_audioDataSize - (byteCounter - m_audioDataStart), availableBytes);
+	
+	int16_t bytesAddedToBuffer = _client->read(InBuff.getWritePtr(), availableBytes);
 
         if(bytesAddedToBuffer > 0) {
-            if(m_streamType == ST_WEBFILE) byteCounter  += bytesAddedToBuffer;  // Pull request #42
-            if(m_f_metadata)               metacount  -= bytesAddedToBuffer;
-            if(m_f_chunked)                m_chunkcount -= bytesAddedToBuffer;
-            InBuff.bytesWritten(bytesAddedToBuffer);
-        }
+        byteCounter  += bytesAddedToBuffer;  // Pull request #42
+        if(m_f_chunked)             m_chunkcount   -= bytesAddedToBuffer;
+        if(m_controlCounter == 100) audioDataCount += bytesAddedToBuffer;
+        InBuff.bytesWritten(bytesAddedToBuffer);
+    }
 
         if(InBuff.bufferFilled() > maxFrameSize && !f_stream) {  // waiting for buffer filled
-            f_stream = true;  // ready to play the audio data
-            uint16_t filltime = millis() - m_t0;
-            if(audio_info) audio_info("stream ready");
-            sprintf(m_chbuf, "buffer filled in %d ms", filltime);
-            if(audio_info) audio_info(m_chbuf);
-        }
+        f_stream = true;  // ready to play the audio data
+        uint16_t filltime = millis() - m_t0;
+        if(m_f_Log) AUDIO_INFO("stream ready\nbuffer filled in %d ms", filltime);
+    }
+
         if(!f_stream) return;
+
+        if(m_codec == CODEC_OGG){ // log_i("determine correct codec here");
+        uint8_t codec = determineOggCodec(InBuff.getReadPtr(), maxFrameSize);
+        if(codec == CODEC_FLAC)   {m_codec = CODEC_FLAC;   return;}
+        if(codec == CODEC_OPUS)   {m_codec = CODEC_OPUS; AUDIO_INFO("can't play OPUS"); stopSong(); return;}
+        if(codec == CODEC_VORBIS) {m_codec = CODEC_VORBIS; return;}
+        stopSong();
+        return;
     }
 
     // // if we have a webfile, read the file header first - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     if(m_streamType == ST_WEBFILE && m_controlCounter != 100){
+		int32_t bytesRead = 0;
         if(InBuff.bufferFilled() < maxFrameSize) return;
          if(m_codec == CODEC_WAV){
             m_controlCounter = 100;
@@ -1232,7 +1161,7 @@ void Audio::processWebFile(){
         }
         if(m_codec == CODEC_MP3){
             int res = read_ID3_Header(InBuff.getReadPtr(), InBuff.bufferFilled());
-            if(res >= 0) bytesDecoded = res;
+			if(res >= 0) bytesRead = res;
             else{m_controlCounter = 100;eofHeader = true;} // error, skip header
         }
         if(m_codec == CODEC_M4A){
@@ -1243,43 +1172,48 @@ void Audio::processWebFile(){
             m_controlCounter = 100;
             eofHeader = true;
         }
-        InBuff.bytesWasRead(bytesDecoded);
+		if(m_codec == CODEC_VORBIS){
+            m_controlCounter = 100;
+			eofHeader = true;
+        }
+        InBuff.bytesWasRead(bytesRead);
         return;
     }
 
-    // play audio data - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    if((InBuff.bufferFilled() >= maxFrameSize) && (f_stream == true)) { // fill > framesize?
-        bytesDecoded = sendBytes(InBuff.getReadPtr(), maxFrameSize);
-        InBuff.bytesWasRead(bytesDecoded);
-    }
-
-    // have we reached the end of the webfile?  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    if(m_streamType == ST_WEBFILE && byteCounter == m_contentlength){
-        while(InBuff.bufferFilled() > 0){
-            if(InBuff.bufferFilled() == 128){ // post tag?
-                if(indexOf((const char*)InBuff.getReadPtr(), "TAG", 0) == 0){
-                   //  log_d("%s", InBuff.getReadPtr() + 3);
-                    break;
-                }
-                // else log_v("%s", InBuff.getReadPtr());
+    // end of webfile reached? - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    if(f_webFileDataComplete && InBuff.bufferFilled() < InBuff.getMaxBlockSize()){
+        if(InBuff.bufferFilled()){
+            if(!readID3V1Tag()){
+                int bytesDecoded = sendBytes(InBuff.getReadPtr(), InBuff.bufferFilled());
+                if(bytesDecoded > 2){InBuff.bytesWasRead(bytesDecoded); return;}
             }
-            bytesDecoded = sendBytes(InBuff.getReadPtr(), InBuff.bufferFilled());
-            if(bytesDecoded < 0) break;
-            InBuff.bytesWasRead(bytesDecoded);
         }
-        stopSong(); // Correct close when play known length sound #74 and before callback #112
+        stopSong(); // Correct close when play known length sound #74 and before callback #11
         if(m_f_tts){
-            sprintf(m_chbuf, "End of speech: \"%s\"", m_lastHost);
-            if(audio_info) audio_info(m_chbuf);
+            AUDIO_INFO("End of speech: \"%s\"", m_lastHost);
             if(audio_eof_speech) audio_eof_speech(m_lastHost);
         }
         else{
-            sprintf(m_chbuf, "End of webstream: \"%s\"", m_lastHost);
-            if(audio_info) audio_info(m_chbuf);
+            AUDIO_INFO("End of webstream: \"%s\"", m_lastHost);
             if(audio_eof_stream) audio_eof_stream(m_lastHost);
         }
+		return;
     }
+
+    if(byteCounter == m_contentlength)                    {f_webFileDataComplete = true;}
+    if(byteCounter - m_audioDataStart == m_audioDataSize) {f_webFileDataComplete = true;}
+
+    // play audio data - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    if(f_stream){
+        static uint8_t cnt = 0;
+        uint8_t compression;
+        if(m_codec == CODEC_WAV)  compression = 1;
+        if(m_codec == CODEC_FLAC) compression = 2;
+        else compression = 3;
+        cnt++;
+        if(cnt == compression){playAudioData(); cnt = 0;}
+    }
+	return;
 }
 //---------------------------------------------------------------------------------------------------------------------
 void Audio::playAudioData(){
@@ -1409,7 +1343,7 @@ const char* Audio::parsePlaylist_M3U(){
             break;
         }
     }
-    vector_clear_and_shrink(m_playlistContent);
+    //vector_clear_and_shrink(m_playlistContent);
     return host;
 }
 //----------------------------------------------------------------------------------------------------------------------
@@ -2032,6 +1966,7 @@ bool Audio::parseContentType(char* ct) {
     else if(!strcmp(ct, "audio/x-wav"))      ct_val = CT_WAV;
 
     else if(!strcmp(ct, "audio/flac"))       ct_val = CT_FLAC;
+	else if(!strcmp(ct, "audio/x-flac"))     ct_val = CT_FLAC;
 
     else if(!strcmp(ct, "audio/scpls"))      ct_val = CT_PLS;
     else if(!strcmp(ct, "audio/x-scpls"))    ct_val = CT_PLS;
@@ -3580,4 +3515,24 @@ boolean Audio::streamDetection(uint32_t bytesAvail){
     }
     return false;
 }
+//----------------------------------------------------------------------------------------------------------------------
+uint8_t Audio::determineOggCodec(uint8_t* data, uint16_t len){
+    // if we have contentType == application/ogg; codec cn be OPUS, FLAC or VORBIS
+    // let's have a look, what it is
+    int idx = specialIndexOf(data, "OggS", 6);
+    if(idx != 0){
+        if(specialIndexOf(data, "fLaC", 6)) return CODEC_FLAC;
+        return CODEC_NONE;
+    }
+    data += 27;
+    idx = specialIndexOf(data, "OpusHead", 40);
+    if(idx >= 0) return CODEC_OPUS;
+    idx = specialIndexOf(data, "fLaC", 40);
+    if(idx >= 0) return CODEC_FLAC;
+    idx = specialIndexOf(data, "vorbis", 40);
+    if(idx >= 0){log_i("vorbis"); return CODEC_VORBIS;}
+    return CODEC_NONE;
+}
+//----------------------------------------------------------------------------------------------------------------------
+
 #endif  //  if I2S_DOUT==255

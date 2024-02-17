@@ -2,7 +2,7 @@
  *  vs1053_ext.h
  *
  *  Created on: Jul 09.2017
- *  Updated on: Apr 08.2023
+ *  Updated on: May 20.2023
  *      Author: Wolle
  */
 
@@ -109,7 +109,7 @@ protected:
     size_t       m_freeSpace        = 0;
     size_t       m_writeSpace       = 0;
     size_t       m_dataLength       = 0;
-    size_t       m_resBuffSizeRAM   = 4096;     // reserved buffspace, >= one mp3  frame
+    size_t       m_resBuffSizeRAM   = 1600;     // reserved buffspace, >= one mp3  frame
     size_t       m_resBuffSizePSRAM = 4096;
     size_t       m_maxBlockSize     = 1600;
     uint8_t*     m_buffer           = NULL;
@@ -134,12 +134,13 @@ private:
     std::vector<uint32_t> m_hashQueue;
 
 private:
-    enum : int { AUDIO_NONE, HTTP_RESPONSE_HEADER , AUDIO_DATA, AUDIO_LOCALFILE, AUDIO_PLAYLISTINIT,
+    const char *codecname[10] = {"unknown", "WAV", "MP3", "AAC", "M4A", "FLAC", "AACP", "OPUS", "OGG", "VORBIS" };
+	enum : int { AUDIO_NONE, HTTP_RESPONSE_HEADER , AUDIO_DATA, AUDIO_LOCALFILE, AUDIO_PLAYLISTINIT,
                  AUDIO_PLAYLISTDATA};
     enum : int { FORMAT_NONE = 0, FORMAT_M3U = 1, FORMAT_PLS = 2, FORMAT_ASX = 3, FORMAT_M3U8 = 4};
 
-    enum : int { CODEC_NONE, CODEC_WAV, CODEC_MP3, CODEC_AAC, CODEC_M4A, CODEC_FLAC, CODEC_OGG,
-                 CODEC_OGG_FLAC, CODEC_OGG_OPUS};
+    enum : int { CODEC_NONE = 0, CODEC_WAV = 1, CODEC_MP3 = 2, CODEC_AAC = 3, CODEC_M4A = 4, CODEC_FLAC = 5,
+                 CODEC_AACP = 6, CODEC_OPUS = 7, CODEC_OGG = 8, CODEC_VORBIS = 9};
     enum : int { ST_NONE = 0, ST_WEBFILE = 1, ST_WEBSTREAM = 2};
 
 private:
@@ -293,6 +294,7 @@ protected:
     size_t   chunkedDataTransfer(uint8_t* bytes);
     bool     readID3V1Tag();
     boolean streamDetection(uint32_t bytesAvail);
+	uint8_t determineOggCodec(uint8_t* data, uint16_t len);
 
 public:
     // Constructor.  Only sets pin values.  Doesn't touch the chip.  Be sure to call begin()!
@@ -327,6 +329,8 @@ public:
     size_t   bufferFilled();
     size_t   bufferFree();
 	void loadUserCode();
+	int getCodec() {return m_codec;}
+    const char *getCodecname() {return codecname[m_codec];}
     size_t   inBufferFilled(){ return bufferFilled(); }
     size_t   inBufferFree(){ return bufferFree(); }
 		void     setBalance(int8_t bal = 0);
