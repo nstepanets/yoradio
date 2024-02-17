@@ -1216,6 +1216,15 @@ void Audio::processWebFile(){
 	return;
 }
 //---------------------------------------------------------------------------------------------------------------------
+bool Audio::pauseResume() {
+    bool retVal = false;
+    if(getDatamode() == AUDIO_LOCALFILE || m_streamType == ST_WEBSTREAM) {
+        m_f_running = !m_f_running;
+        retVal = true;
+    }
+    return retVal;
+}
+//---------------------------------------------------------------------------------------------------------------------
 void Audio::playAudioData(){
 
     if(InBuff.bufferFilled() < InBuff.getMaxBlockSize()) return; // guard
