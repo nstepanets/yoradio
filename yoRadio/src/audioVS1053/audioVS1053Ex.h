@@ -2,7 +2,7 @@
  *  vs1053_ext.h
  *
  *  Created on: Jul 09.2017
- *  Updated on: May 20.2023
+ *  Updated on: Oct 19.2023
  *      Author: Wolle
  */
 
@@ -52,7 +52,6 @@ extern __attribute__((weak)) void audio_eof_stream(const char*); // The webstrea
 extern __attribute__((weak)) void audio_progress(uint32_t start, uint32_t durarion);
 extern __attribute__((weak)) void audio_error(const char*);
 
-#define AUDIO_INFO(...) {char buff[512 + 64]; sprintf(buff,__VA_ARGS__); if(audio_info) audio_info(buff);}
 #define AUDIO_ERROR(...) {char buff[512 + 64]; sprintf(buff,__VA_ARGS__); if(audio_error) audio_error(buff);}
 
 //----------------------------------------------------------------------------------------------------------------------
@@ -179,9 +178,11 @@ private:
     SPIClass*       spi_VS1053 = NULL;
     SPISettings     VS1053_SPI;
 
+	char*           m_ibuff = nullptr;              // used in audio_info()
 	char*           m_chbuf = NULL;
     uint16_t        m_chbufSize = 0;                // will set in constructor (depending on PSRAM)
-    char            m_lastHost[256];                // Store the last URL to a webstream
+	uint16_t        m_ibuffSize = 0;                // will set in constructor (depending on PSRAM)
+    char*           m_lastHost = NULL;              // Store the last URL to a webstream
     char*           m_playlistBuff = NULL;          // stores playlistdata
     uint8_t         m_codec = CODEC_NONE;           //
     uint8_t         m_expectedCodec = CODEC_NONE;   // set in connecttohost (e.g. http://url.mp3 -> CODEC_MP3)
@@ -209,7 +210,10 @@ private:
     bool            m_f_ts = true;                  // transport stream
     bool            m_f_webfile = false;
     bool            m_f_firstCall = false;          // InitSequence for processWebstream and processLokalFile
+	bool            m_f_firstM3U8call = false;      // InitSequence for m3u8 parsing
 	bool            m_f_m3u8data = false;           // used in processM3U8entries
+	bool            m_f_psramFound = false;         // set in constructor, result of psramInit()
+    bool            m_f_timeout = false;            //
     int             m_LFcount;                      // Detection of end of header
     uint32_t        m_chunkcount = 0 ;              // Counter for chunked transfer
     uint32_t        m_contentlength = 0;
@@ -282,6 +286,8 @@ protected:
     const char* parsePlaylist_PLS();
     const char* parsePlaylist_ASX();
 	const char* parsePlaylist_M3U8();
+	const char* m3u8redirection();
+    uint64_t m3u8_findMediaSeqInURL();
     bool     STfromEXTINF(char* str);
     size_t   process_m3u8_ID3_Header(uint8_t* packet);
     bool     parseContentType(char* ct);
