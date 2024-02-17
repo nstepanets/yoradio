@@ -2124,6 +2124,7 @@ void Audio::setDefaults(){
 	m_f_ts = false;
     m_f_m3u8data = false;                                   // set again in processM3U8entries() if necessary
     setDatamode(AUDIO_NONE);
+	m_contentlength = 0;
     m_streamTitleHash = 0;
     m_streamUrlHash = 0;
     m_streamType = ST_NONE;
