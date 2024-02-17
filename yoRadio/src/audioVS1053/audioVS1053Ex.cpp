@@ -276,7 +276,7 @@ void Audio::sdi_send_buffer(uint8_t* data, size_t len)
 //---------------------------------------------------------------------------------------------------------------------
 void Audio::sdi_send_fillers(size_t len){
 
-    size_t chunk_length;                                    // Length of chunk 32 byte or shorter
+    size_t chunk_length = 0;                                    // Length of chunk 32 byte or shorter
 
     data_mode_on();
     while(len)                                              // More to do?
@@ -990,7 +990,7 @@ void Audio::processWebStreamTS() {
     if(f_stream){
         static uint8_t cnt = 0;
         cnt++;
-        if(cnt == 3){playAudioData(); cnt = 0;} // aac only
+        if(cnt == 1){playAudioData(); cnt = 0;} // aac only
     }
     return;
 }
@@ -1092,7 +1092,7 @@ void Audio::processWebStreamHLS() {
     if(f_stream){
         static uint8_t cnt = 0;
         cnt++;
-        if(cnt == 3){playAudioData(); cnt = 0;} // aac only
+        if(cnt == 1){playAudioData(); cnt = 0;} // aac only
     }
     return;
 }
