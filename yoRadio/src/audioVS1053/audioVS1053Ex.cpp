@@ -160,7 +160,7 @@ Audio::Audio(uint8_t _cs_pin, uint8_t _dcs_pin, uint8_t _dreq_pin, uint8_t spi, 
 
     clientsecure.setInsecure();                 // update to ESP32 Arduino version 1.0.5-rc05 or higher
     m_endFillByte=0;
-    curvol=50;
+    m_vol=50;
     m_LFcount=0;
 }
 Audio::~Audio(){
@@ -348,43 +348,39 @@ size_t Audio::bufferFree(){
     return InBuff.freeSpace();
 }
 //---------------------------------------------------------------------------------------------------------------------
-
-void Audio::setVolume(uint8_t vol){
-    // Set volume.  Both left and right.
-    // Input value is 0..21.  21 is the loudest.
-    // Clicking reduced by using 0xf8 to 0x00 as limits.
-    uint16_t value;                                         // Value to send to SCI_VOL
-		uint8_t valueL, valueR;
-		int16_t balance_map = map(m_balance, -16, 16, -100, 100);
-		
-		valueL = vol;
-    valueR = vol;
+void Audio::setVolumeSteps(uint8_t steps) {
+    if(!steps) steps = 1;  // 0 is nonsense
+    m_vol_steps = steps;
+}
+//---------------------------------------------------------------------------------------------------------------------
+uint8_t Audio::maxVolume() {
+        return m_vol_steps;
+};
+//---------------------------------------------------------------------------------------------------------------------
+void Audio::setVolume(uint8_t vol){ // Set volume.  Both left and right.
+    if (vol > m_vol_steps) vol = m_vol_steps;
+    m_vol = vol;
+	uint8_t v1 = map(m_vol, 0, m_vol_steps, 0, 254);
+	uint8_t valueL, valueR;
+	
+	valueL = v1;
+	valueR = v1;
+	int16_t balance_map = map(m_balance, -16, 16, -100, 100);
     if (balance_map < 0) {
         valueR = (float)valueR-(float)valueR * abs((float)balance_map)/100;
     } else if (balance_map > 0) {
-    		valueL = (float)valueL-(float)valueL * abs((float)balance_map)/100;
+    	valueL = (float)valueL-(float)valueL * abs((float)balance_map)/100;
     }
-    curvol = vol;
 
-		uint8_t lgvolL = VS1053VOL(valueL);
-		uint8_t lgvolR = VS1053VOL(valueR);
-		if(lgvolL==VS1053VOLM) lgvolL=0;
-		if(lgvolR==VS1053VOLM) lgvolR=0;
-		valueL=map(lgvolL, 0, 254, 0xF8, 0x00);
-		valueR=map(lgvolR, 0, 254, 0xF8, 0x00);
-		value=(valueL << 8) | valueR;
-		write_register(SCI_VOL, value);
-/*    uint16_t value;                                         // Value to send to SCI_VOL
+	uint8_t lgvolL = VS1053VOL(valueL);
+	uint8_t lgvolR = VS1053VOL(valueR);
+	if (lgvolL == VS1053VOLM) lgvolL = 0;
+	if (lgvolR == VS1053VOLM) lgvolR = 0;
+	valueL = map(lgvolL, 0, 254, 0xF8, 0x00);
+	valueR = map(lgvolR, 0, 254, 0xF8, 0x00);
 
-    if(vol > 21) vol=21;
-
-    if(vol != curvol){
-        curvol = vol;                                       // #20
-        vol=volumetable[vol];                               // Save for later use
-        value=map(vol, 0, 100, 0xF8, 0x00);                 // 0..100% to one channel
-        value=(value << 8) | value;
-        write_register(SCI_VOL, value);                     // Volume left and right
-    }*/
+	uint16_t value = (uint16_t)(valueL << 8) | valueR;
+	write_register(SCI_VOL, value);							// Volume left and right
 }
 //---------------------------------------------------------------------------------------------------------------------
 void Audio::setTone(int8_t *rtone){                       // Set bass/treble (4 nibbles)
@@ -416,12 +412,12 @@ void Audio::setTone(int8_t gainLowPass, int8_t gainBandPass, int8_t gainHighPass
 }
 void Audio::setBalance(int8_t bal){ 
 	m_balance = bal;
-	setVolume(curvol);
+	setVolume(m_vol);
 }
 //---------------------------------------------------------------------------------------------------------------------
 uint8_t Audio::getVolume()                                 // Get the currenet volume setting.
 {
-    return curvol;
+    return m_vol;
 }
 //----------------------------------------------------------------------------------------------------------------------
 void Audio::startSong()
@@ -516,6 +512,10 @@ uint32_t Audio::printChipID(){
     chipID =  wram_read(0x1E00) << 16;
     chipID += wram_read(0x1E01);
     return chipID;
+}
+//---------------------------------------------------------------------------------------------------------------------
+uint32_t Audio::getBitRate(){
+    return (wram_read(0x1e05) & 0xFF) * 1000;  // Kbit/s => bit/s
 }
 //---------------------------------------------------------------------------------------------------------------------
 void Audio::showstreamtitle(const char* ml) {

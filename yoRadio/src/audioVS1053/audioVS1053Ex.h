@@ -147,7 +147,8 @@ private:
     uint8_t       cs_pin ;                        	// Pin where CS line is connected
     uint8_t       dcs_pin ;                       	// Pin where DCS line is connected
     uint8_t       dreq_pin ;                      	// Pin where DREQ line is connected
-    uint8_t       curvol ;                        	// Current volume setting 0..100%
+    uint16_t      m_vol = 0;                       	// volume
+	uint8_t       m_vol_steps = 254;                // default
 
     const uint8_t vs1053_chunk_size = 32 ;
     int8_t          m_balance = 0;                  // -16 (mute left) ... +16 (mute right)
@@ -304,12 +305,15 @@ public:
 
     void     begin() ;                                  // Begin operation.  Sets pins correctly and prepares SPI bus.
     uint32_t stop_mp3client();
+	void     setVolumeSteps(uint8_t steps);             // default 21
     void     setVolume(uint8_t vol);                    // Set the player volume.Level from 0-21, higher is louder.
-    void     setTone(int8_t* rtone);                   // Set the player baas/treble, 4 nibbles for treble gain/freq and bass gain/freq
+    void     setTone(int8_t* rtone);                    // Set the player baas/treble, 4 nibbles for treble gain/freq and bass gain/freq
     uint8_t  getVolume();                               // Get the current volume setting, higher is louder.
+	uint8_t  maxVolume();                               // returns volumeSteps
     void     printDetails(const char* str);             // Print configuration details to serial output.
     uint8_t  printVersion();                            // Returns version of vs1053 chip
     uint32_t printChipID();                             // Returns chipID of vs1053 chip
+	uint32_t getBitRate();                              // average br from WRAM register
     void     softReset() ;                              // Do a soft reset
     void     loop();
     void     setConnectionTimeout(uint16_t timeout_ms, uint16_t timeout_ms_ssl);
