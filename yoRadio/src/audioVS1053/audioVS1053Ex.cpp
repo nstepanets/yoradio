@@ -5,7 +5,7 @@
  *  vs1053_ext.cpp
  *
  *  Created on: Jul 09.2017
- *  Updated on: Oct 19.2023
+ *  Updated on: Oct 20.2023
  *      Author: Wolle
  */
 #ifndef VS_PATCH_ENABLE
@@ -173,9 +173,10 @@ Audio::Audio(uint8_t _cs_pin, uint8_t _dcs_pin, uint8_t _dreq_pin, uint8_t spi, 
 }
 Audio::~Audio(){
     // destructor
-	if(m_chbuf) {free(m_chbuf); m_chbuf = NULL;}
-	if(m_lastHost) {free(m_lastHost); m_lastHost = NULL;}
-    if(m_ibuff)    {free(m_ibuff);    m_ibuff    = NULL;}
+	if(m_chbuf)      {free(m_chbuf);       m_chbuf       = NULL;}
+    if(m_lastHost)   {free(m_lastHost);    m_lastHost    = NULL;}
+    if(m_ibuff)      {free(m_ibuff);       m_ibuff       = NULL;}
+    if(m_lastM3U8host){free(m_lastM3U8host); m_lastM3U8host = NULL;}
 }
 //---------------------------------------------------------------------------------------------------------------------
 void Audio::initInBuff() {
@@ -648,7 +649,7 @@ void Audio::loop(){
                 httpPrint(host);
             }
             else { // host == NULL means connect to m3u8 URL
-                httpPrint(m_lastHost);
+                httpPrint(m_lastM3U8host);
                 setDatamode(HTTP_RESPONSE_HEADER); // we have a new playlist now
             }
 
@@ -1537,8 +1538,12 @@ const char* Audio::parsePlaylist_M3U8() {
 				if(!startsWith(m_playlistContent[i], "http")) {
 					// http://livees.com/prog_index.m3u8 and prog_index48347.aac -->
 					// http://livees.com/prog_index48347.aac
-					tmp = (char*)malloc(strlen(m_lastHost) + strlen(m_playlistContent[i]));
-					strcpy(tmp, m_lastHost);
+					if(m_lastM3U8host != 0){
+                        tmp = strdup(m_lastM3U8host);
+                    }
+                    else{
+                        tmp = strdup(m_lastHost);
+                    }
 					int idx = lastIndexOf(tmp, "/");
 					strcpy(tmp + idx + 1, m_playlistContent[i]);
 				}
@@ -1604,7 +1609,7 @@ const char* Audio::parsePlaylist_M3U8() {
                     }
                     else{;}
 
-                    if(m_playlistURL.size() == 0) connecttohost(m_lastHost);
+                    if(m_playlistURL.size() == 0){connecttohost(m_lastHost);}
                 }
             }
             else{
@@ -1682,12 +1687,13 @@ const char* Audio::m3u8redirection(){
         m_playlistContent[choosenLine] = NULL;
     }
     m_playlistContent[choosenLine] = strdup(tmp);
-    strcpy(m_lastHost, tmp);
+    if(m_lastM3U8host){free(m_lastM3U8host); m_lastM3U8host = NULL;}
+    m_lastM3U8host = strdup(tmp);
     if(tmp) {
         free(tmp);
         tmp = NULL;
     }
-    if(m_f_Log) log_i("redirect %s", m_playlistContent[choosenLine]);
+    AUDIO_INFO("redirect to %s", m_playlistContent[choosenLine]);
     _client->stop();
     return m_playlistContent[choosenLine];  // it's a redirection, a new m3u8 playlist
 exit:
@@ -2346,14 +2352,16 @@ bool Audio::connecttohost(const char* host, const char* user, const char* pwd) {
     // user and pwd for authentification only, can be empty
 
     if(host == NULL) {
-        AUDIO_INFO("Hostaddress is empty");
-		return false;
+        AUDIO_INFO("cth Hostaddress is empty");
+        stopSong();
+        return false;
     }
 
     uint16_t lenHost = strlen(host);
 
     if(lenHost >= 512 + 64 - 10) {
         AUDIO_INFO("Hostaddress is too long");
+		stopSong();
         return false;
     }
 
@@ -2467,19 +2475,19 @@ bool Audio::connecttohost(const char* host, const char* user, const char* pwd) {
 
     if (res) {
         _client->print(rqh);
-        if(endsWith(extension, ".mp3")) m_expectedCodec = CODEC_MP3;
-        if(endsWith(extension, ".aac")) m_expectedCodec = CODEC_AAC;
-        if(endsWith(extension, ".wav")) m_expectedCodec = CODEC_WAV;
-        if(endsWith(extension, ".m4a")) m_expectedCodec = CODEC_M4A;
-        if(endsWith(extension, ".ogg")) m_expectedCodec = CODEC_OGG;
-        if(endsWith(extension, ".flac")) m_expectedCodec = CODEC_FLAC;
-        if(endsWith(extension, "-flac")) m_expectedCodec = CODEC_FLAC;
-        if(endsWith(extension, ".opus")) m_expectedCodec = CODEC_OPUS;
-        if(endsWith(extension, "/opus")) m_expectedCodec = CODEC_OPUS;
-        if(endsWith(extension, ".asx")) m_expectedPlsFmt = FORMAT_ASX;
-        if(endsWith(extension, ".m3u")) m_expectedPlsFmt = FORMAT_M3U;
-        if(endsWith(extension, ".pls")) m_expectedPlsFmt = FORMAT_PLS;
-		if(endsWith(extension, ".m3u8")){m_expectedPlsFmt = FORMAT_M3U8; if(audio_lasthost) audio_lasthost(host);}
+        if(endsWith(extension, ".mp3" ))   m_expectedCodec = CODEC_MP3;
+        if(endsWith(extension, ".aac" ))   m_expectedCodec = CODEC_AAC;
+        if(endsWith(extension, ".wav" ))   m_expectedCodec = CODEC_WAV;
+        if(endsWith(extension, ".m4a" ))   m_expectedCodec = CODEC_M4A;
+        if(endsWith(extension, ".ogg" ))   m_expectedCodec = CODEC_OGG;
+        if(endsWith(extension, ".flac"))   m_expectedCodec = CODEC_FLAC;
+        if(endsWith(extension, "-flac"))   m_expectedCodec = CODEC_FLAC;
+        if(endsWith(extension, ".opus"))   m_expectedCodec = CODEC_OPUS;
+        if(endsWith(extension, "/opus"))   m_expectedCodec = CODEC_OPUS;
+        if(endsWith(extension, ".asx" ))   m_expectedPlsFmt = FORMAT_ASX;
+        if(endsWith(extension, ".m3u" ))   m_expectedPlsFmt = FORMAT_M3U;
+        if(endsWith(extension, ".pls" ))   m_expectedPlsFmt = FORMAT_PLS;
+        if(endsWith(extension, ".m3u8")){  m_expectedPlsFmt = FORMAT_M3U8; if(audio_lasthost) audio_lasthost(host);}
 
         setDatamode(HTTP_RESPONSE_HEADER);  // Handle header
         m_streamType = ST_WEBSTREAM;
@@ -2579,15 +2587,15 @@ bool Audio::httpPrint(const char* host) {
     }
     _client->print(rqh);
 
-    if(endsWith(extension, ".mp3")) m_expectedCodec = CODEC_MP3;
-    if(endsWith(extension, ".aac")) m_expectedCodec = CODEC_AAC;
-    if(endsWith(extension, ".wav")) m_expectedCodec = CODEC_WAV;
-    if(endsWith(extension, ".m4a")) m_expectedCodec = CODEC_M4A;
-    if(endsWith(extension, ".flac")) m_expectedCodec = CODEC_FLAC;
-    if(endsWith(extension, ".asx")) m_expectedPlsFmt = FORMAT_ASX;
-    if(endsWith(extension, ".m3u")) m_expectedPlsFmt = FORMAT_M3U;
-    if(endsWith(extension, ".m3u8")) m_expectedPlsFmt = FORMAT_M3U8;
-    if(endsWith(extension, ".pls")) m_expectedPlsFmt = FORMAT_PLS;
+    if(endsWith(extension, ".mp3" ))       m_expectedCodec = CODEC_MP3;
+    if(endsWith(extension, ".aac" ))       m_expectedCodec = CODEC_AAC;
+    if(endsWith(extension, ".wav" ))       m_expectedCodec = CODEC_WAV;
+    if(endsWith(extension, ".m4a" ))       m_expectedCodec = CODEC_M4A;
+    if(endsWith(extension, ".flac"))       m_expectedCodec = CODEC_FLAC;
+    if(endsWith(extension, ".asx" ))       m_expectedPlsFmt = FORMAT_ASX;
+    if(endsWith(extension, ".m3u" ))       m_expectedPlsFmt = FORMAT_M3U;
+    if(indexOf( extension, ".m3u8") >= 0)  m_expectedPlsFmt = FORMAT_M3U8;
+    if(endsWith(extension, ".pls" ))       m_expectedPlsFmt = FORMAT_PLS;
 
     setDatamode(HTTP_RESPONSE_HEADER);  // Handle header
     m_streamType = ST_WEBSTREAM;
