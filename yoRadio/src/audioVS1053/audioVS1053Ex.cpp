@@ -143,9 +143,12 @@ uint32_t AudioBuffer::getReadPos() {
 //---------------------------------------------------------------------------------------------------------------------
 // **** VS1053 Impl ****
 //---------------------------------------------------------------------------------------------------------------------
-Audio::Audio(uint8_t _cs_pin, uint8_t _dcs_pin, uint8_t _dreq_pin, uint8_t spi, uint8_t mosi, uint8_t miso, uint8_t sclk) :
-        cs_pin(_cs_pin), dcs_pin(_dcs_pin), dreq_pin(_dreq_pin)
+Audio::Audio(uint8_t _cs_pin, uint8_t _dcs_pin, uint8_t _dreq_pin, uint8_t spi, uint8_t mosi, uint8_t miso, uint8_t sclk)
 {
+    dreq_pin = _dreq_pin;
+    dcs_pin  = _dcs_pin;
+    cs_pin   = _cs_pin;
+
     spi_VS1053 = new SPIClass(spi);
     spi_VS1053->begin(sclk, miso, mosi, -1);
 
@@ -188,7 +191,7 @@ void Audio::initInBuff() {
         if(size == m_buffSizeRAM - m_resBuffSizeRAM) {
             sprintf(m_chbuf, "PSRAM not found, inputBufferSize: %u bytes", size - 1);
             if(audio_info)  audio_info(m_chbuf);
-			f_already_done = true;
+            f_already_done = true;
         }
         if(size == m_buffSizePSRAM - m_resBuffSizePSRAM) {
             sprintf(m_chbuf, "PSRAM found, inputBufferSize: %u bytes", size - 1);
@@ -1874,7 +1877,7 @@ bool Audio::latinToUTF8(char* buff, size_t bufflen){
     uint16_t len = strlen(buff);
     uint8_t  c;
 
-    while(pos < len){
+    while(pos < len - 2){
         c = buff[pos];
         if(c >= 0xC2) {    // is UTF8 char
             pos++;
@@ -2112,6 +2115,7 @@ bool Audio::parseHttpResponseHeader() { // this is the response to a GET / reque
         if(audio_showstation) audio_showstation("");
         if(audio_icydescription) audio_icydescription("");
         if(audio_icyurl) audio_icyurl("");
+		if(m_playlistFormat == FORMAT_M3U8) return false;
         m_lastHost[0] = '\0';
         setDatamode(AUDIO_NONE);
         stopSong();
@@ -2132,7 +2136,6 @@ bool Audio::parseHttpResponseHeader() { // this is the response to a GET / reque
         }
         else{
             AUDIO_INFO("unknown content found at: %s", m_lastHost);
-            AUDIO_ERROR("unknown content found at: %s", m_lastHost);
             goto exit;
         }
         return true;
@@ -2530,6 +2533,7 @@ bool Audio::httpPrint(const char* host) {
 
     if(host == NULL) {
         AUDIO_INFO("Hostaddress is empty");
+        stopSong();
         return false;
     }
 
