@@ -2696,7 +2696,7 @@ void Audio::loadUserCode(void) {
   }
   
   int i = 0;
-  while (i<pugin_size/sizeof(plugin[0])) {
+  while (i < pugin_size) {
     unsigned short addr, n, val;
     addr = plugin[i++];
     n = plugin[i++];
