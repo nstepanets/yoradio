@@ -34,6 +34,7 @@
 #endif
 
 #include "vs1053b-patches-flac.h"
+#include "vs1063a-playpatches.h"
 
 extern __attribute__((weak)) void audio_info(const char*);
 extern __attribute__((weak)) void audio_showstreamtitle(const char*);

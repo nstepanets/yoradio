@@ -349,11 +349,13 @@ void Audio::begin(){
     write_register(SCI_MODE, _BV (SM_SDINEW) | _BV(SM_LINE1));
 
     await_data_request();
+	
+	if(VS_PATCH_ENABLE) loadUserCode(); // load in VS1053B if you want to play flac
     //set vu meter
     setVUmeter();
     m_endFillByte = wram_read(0x1E06) & 0xFF;
 
-    if(VS_PATCH_ENABLE) loadUserCode(); // load in VS1053B if you want to play flac
+    
 }
 //---------------------------------------------------------------------------------------------------------------------
 size_t Audio::bufferFilled(){
@@ -2670,21 +2672,43 @@ bool Audio::httpPrint(const char* host) {
 }
 //---------------------------------------------------------------------------------------------------------------------
 void Audio::loadUserCode(void) {
-  int i = 0;
 
-  while (i<sizeof(flac_plugin)/sizeof(flac_plugin[0])) {
+  /* SS_VER is 0 for VS1001, 1 for VS1011, 2 for VS1002, 3 for VS1003, 4 for VS1053 and VS8053, 
+  5 for VS1033, 6 for VS1063/VS1163, and 7 for VS1103 */
+  const uint16_t chipNumber[16] = {1001, 1011, 1002, 1003, 1053, 1033, 1063, 1103, 0, 0, 0, 0, 0, 0, 0, 0};
+  
+  /* Check VS10xx type */
+  uint16_t ssVer = ((read_register(SCI_STATUS) >> 4) & 15);
+  if (chipNumber[ssVer]) {
+	  DBGVB("Chip is VS%d\n", chipNumber[ssVer]);
+  }
+  
+  const uint16_t* plugin = nullptr;
+  int pugin_size = 0;
+  if (ssVer == 4) {
+	  plugin = flac_plugin;
+	  pugin_size = PLUGIN_SIZE;
+  } else if (ssVer == 6) {
+	  plugin = vs1063_plugin;
+	  pugin_size = VS1063_PLUGIN_SIZE;
+  } else {
+	  return;
+  }
+  
+  int i = 0;
+  while (i<pugin_size/sizeof(plugin[0])) {
     unsigned short addr, n, val;
-    addr = flac_plugin[i++];
-    n = flac_plugin[i++];
+    addr = plugin[i++];
+    n = plugin[i++];
     if (n & 0x8000U) { /* RLE run, replicate n samples */
       n &= 0x7FFF;
-      val = flac_plugin[i++];
+      val = plugin[i++];
       while (n--) {
         write_register(addr, val);
       }
     } else {           /* Copy run, copy n samples */
       while (n--) {
-        val = flac_plugin[i++];
+        val = plugin[i++];
         write_register(addr, val);
       }
     }
