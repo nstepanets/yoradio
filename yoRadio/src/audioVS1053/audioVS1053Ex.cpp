@@ -349,6 +349,12 @@ void Audio::begin(){
     write_register(SCI_MODE, _BV (SM_SDINEW) | _BV(SM_LINE1));
 
     await_data_request();
+
+    // Check VS10xx type
+	// SS_VER is 0 for VS1001, 1 for VS1011, 2 for VS1002, 3 for VS1003, 4 for VS1053 and VS8053, 
+    // 5 for VS1033, 6 for VS1063/VS1163, and 7 for VS1103
+	ssVer = ((read_register(SCI_STATUS) >> 4) & 15);
+	DBGVB("\nChip SS_VER is %d\n", ssVer);
 	
 	if(VS_PATCH_ENABLE) loadUserCode(); // load in VS1053B if you want to play flac
     //set vu meter
@@ -2358,15 +2364,21 @@ void Audio::setDefaults(){
  * \n The VU meter takes about 0.2MHz of processing power with 48 kHz samplerate.
  */
 void Audio::setVUmeter() {
-  if(!VS_PATCH_ENABLE) return;
-  uint16_t MP3Status = read_register(SCI_STATUS);
-  if(MP3Status==0) {
-    Serial.println("VS1053 Error: Unable to write SCI_STATUS");
-    _vuInitalized = false;
-    return;
+  _vuInitalized = false;
+  if(ssVer == 4 && VS_PATCH_ENABLE) {
+	  uint16_t MP3Status = read_register(SCI_STATUS);
+	  if(MP3Status==0) {
+		  Serial.println("VS1053 Error: Unable to write SCI_STATUS");
+		  return;
+	  }
+	  _vuInitalized = true;
+	  write_register(SCI_STATUS, MP3Status | _BV(9));
+  } else if (ssVer == 6) {
+	  _vuInitalized = true;
+	  int playMode = wram_read(0x1e09); 				// PAR_PLAY_MODE
+	  playMode |= (1<<2);								// PAR_PLAY_MODE_VU_METER_ENA
+	  wram_write(0x1e09, playMode);
   }
-  _vuInitalized = true;
-  write_register(SCI_STATUS, MP3Status | _BV(9));
 }
 
 //------------------------------------------------------------------------------
@@ -2382,15 +2394,20 @@ void Audio::setVUmeter() {
  * \warning This feature is only available with patches that support VU meter.
  */
 void Audio::getVUlevel() {
-  if(!VS_PATCH_ENABLE) return;
   if(!_vuInitalized) return;
-  int16_t reg = read_register(SCI_AICTRL3);
-  uint8_t rl = map((uint8_t)reg, 85, 92, 0, 255);
-  uint8_t rr = map((uint8_t)(reg >> 8), 85, 92, 0, 255);
-  //if(rl>30 || !isRunning()) vuLeft = rl;
-  //if(rr>30 || !isRunning()) vuRight = rr;
-  vuLeft = rl;
-  vuRight = rr;
+  
+  uint16_t reg = 0;
+  if (ssVer == 4 && VS_PATCH_ENABLE) {
+	reg = read_register(SCI_AICTRL3);
+	vuLeft = map((uint8_t)reg, 85, 92, 0, 255);
+	vuRight = map((uint8_t)(reg >> 8), 85, 92, 0, 255);
+  } else if (ssVer == 6) {
+	reg = wram_read(0x1E0C);
+	vuLeft = map((uint8_t)(reg >> 8), 85, 94, 0, 255);
+	vuRight = map((uint8_t)reg, 85, 94, 0, 255);
+  } else {
+	  return;
+  }
 }
 //---------------------------------------------------------------------------------------------------------------------
 void Audio::setConnectionTimeout(uint16_t timeout_ms, uint16_t timeout_ms_ssl){
@@ -2672,26 +2689,15 @@ bool Audio::httpPrint(const char* host) {
 }
 //---------------------------------------------------------------------------------------------------------------------
 void Audio::loadUserCode(void) {
-
-  /* SS_VER is 0 for VS1001, 1 for VS1011, 2 for VS1002, 3 for VS1003, 4 for VS1053 and VS8053, 
-  5 for VS1033, 6 for VS1063/VS1163, and 7 for VS1103 */
-  const uint16_t chipNumber[16] = {1001, 1011, 1002, 1003, 1053, 1033, 1063, 1103, 0, 0, 0, 0, 0, 0, 0, 0};
-  
-  /* Check VS10xx type */
-  uint16_t ssVer = ((read_register(SCI_STATUS) >> 4) & 15);
-  if (chipNumber[ssVer]) {
-	  DBGVB("Chip is VS%d\n", chipNumber[ssVer]);
-  }
-  
   const uint16_t* plugin = nullptr;
   int pugin_size = 0;
-  if (ssVer == 4) {
+  if (ssVer == 4) {							// VS1053
 	  plugin = flac_plugin;
 	  pugin_size = PLUGIN_SIZE;
-  } else if (ssVer == 6) {
+  } else if (ssVer == 6) {					// VS1063
 	  plugin = vs1063_plugin;
 	  pugin_size = VS1063_PLUGIN_SIZE;
-  } else {
+  } else {									// VS1003
 	  return;
   }
   

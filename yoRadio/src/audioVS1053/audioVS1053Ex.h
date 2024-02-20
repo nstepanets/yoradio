@@ -153,6 +153,7 @@ private:
     uint8_t       dreq_pin ;                      	// Pin where DREQ line is connected
     uint16_t      m_vol = 0;                       	// volume
 	uint8_t       m_vol_steps = 254;                // default
+	uint16_t      ssVer = 0;
 
     const uint8_t vs1053_chunk_size = 32 ;
     int8_t          m_balance = 0;                  // -16 (mute left) ... +16 (mute right)
