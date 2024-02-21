@@ -77,28 +77,43 @@ void audio_error(const char *info) {
 }
 
 void audio_id3artist(const char *info){
-  if(printable(info)) config.setStation(info);
-  display.putRequest(NEWSTATION);
-  netserver.requestOnChange(STATION, 0);
-}
-
-void audio_id3album(const char *info){
   if(player.lockOutput) return;
-  if(printable(info)){
-    if(strlen(config.station.title)==0){
+  if(printable(info) && strcmp(info, config.station.id3artist) != 0){
+	memset(config.station.id3artist, 0, BUFLEN);
+	strlcpy(config.station.id3artist, info, BUFLEN);
+    if(strlen(config.station.id3title)==0){
       config.setTitle(info);
     }else{
       char out[BUFLEN]= {0};
-      strlcat(out, config.station.title, BUFLEN);
-      strlcat(out, " - ", BUFLEN);
       strlcat(out, info, BUFLEN);
+      strlcat(out, " - ", BUFLEN);
+      strlcat(out, config.station.id3title, BUFLEN);
       config.setTitle(out);
     }
   }
 }
 
+void audio_id3album(const char *info){
+  if(printable(info)) config.setStation(info);
+  display.putRequest(NEWSTATION);
+  netserver.requestOnChange(STATION, 0);
+}
+
 void audio_id3title(const char *info){
-  audio_id3album(info);
+  if(player.lockOutput) return;
+  if (printable(info) && strcmp(info, config.station.id3title) != 0){
+	memset(config.station.id3title, 0, BUFLEN);
+	strlcpy(config.station.id3title, info, BUFLEN);
+	if(strlen(config.station.id3artist)==0){
+      config.setTitle(info);
+    }else{
+	  char out[BUFLEN]= {0};
+	  strlcat(out, config.station.id3artist, BUFLEN);
+	  strlcat(out, " - ", BUFLEN);
+	  strlcat(out, info, BUFLEN);
+	  config.setTitle(out);
+	}
+  }
 }
 
 void audio_beginSDread(){

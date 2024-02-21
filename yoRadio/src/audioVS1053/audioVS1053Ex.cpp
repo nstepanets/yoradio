@@ -3301,7 +3301,7 @@ void Audio::showID3Tag(const char* tag, const char* value){
     if(!strcmp(tag, "TEXT")) sprintf(m_chbuf, "Lyricist: %s", value);
     if(!strcmp(tag, "TIME")) sprintf(m_chbuf, "Time: %s", value);
     if(!strcmp(tag, "TIT1")) sprintf(m_chbuf, "Grouping: %s", value);
-    if(!strcmp(tag, "TIT2")) { sprintf(m_chbuf, "Title: %s", value); if(audio_id3album) audio_id3album(value); }
+    if(!strcmp(tag, "TIT2")) { sprintf(m_chbuf, "Title: %s", value); if(audio_id3title) audio_id3title(value); }
     if(!strcmp(tag, "TIT3")) sprintf(m_chbuf, "Subtitle: %s", value);
     if(!strcmp(tag, "TLAN")) sprintf(m_chbuf, "Language: %s", value);
     if(!strcmp(tag, "TLEN")) sprintf(m_chbuf, "Length (ms): %s", value);

@@ -141,6 +141,8 @@ struct station_t
   char title[BUFLEN];
   uint16_t bitrate;
   int  ovol;
+  char id3artist[BUFLEN];
+  char id3title[BUFLEN];
 };
 
 struct neworkItem
