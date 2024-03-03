@@ -556,6 +556,20 @@ void Config::setTitle(const char* title) {
   display.putRequest(NEWTITLE);
 }
 
+void Config::updateTitle() {
+  if (strlen(config.station.id3title) != 0 && strlen(config.station.id3artist) != 0) {
+    char out[BUFLEN]= {0};
+    strlcat(out, config.station.id3artist, BUFLEN);
+    strlcat(out, " - ", BUFLEN);
+    strlcat(out, config.station.id3title, BUFLEN);
+    config.setTitle(out);  
+  }else if (strlen(config.station.id3title) == 0) {
+    config.setTitle(config.station.id3artist);
+  }else{
+    config.setTitle(config.station.id3title);
+  }
+}
+
 void Config::setStation(const char* station) {
   memset(config.station.name, 0, BUFLEN);
   strlcpy(config.station.name, station, BUFLEN);

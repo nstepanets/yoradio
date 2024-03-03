@@ -187,6 +187,7 @@ class Config {
     byte setCountStation(uint16_t val);
     byte setLastSSID(byte val);
     void setTitle(const char* title);
+    void updateTitle();
     void setStation(const char* station);
     bool parseCSV(const char* line, char* name, char* url, int &ovol);
     bool parseJSON(const char* line, char* name, char* url, int &ovol);

@@ -79,19 +79,9 @@ void audio_error(const char *info) {
 void audio_id3artist(const char *info){
   if(player.lockOutput) return;
   if(printable(info) && strcmp(info, config.station.id3artist) != 0){
-	memset(config.station.id3artist, 0, BUFLEN);
-	strlcpy(config.station.id3artist, info, BUFLEN);
-    if (strlen(config.station.id3title) != 0 && strlen(config.station.id3artist) != 0) {
-	  char out[BUFLEN]= {0};
-      strlcat(out, info, BUFLEN);
-      strlcat(out, " - ", BUFLEN);
-      strlcat(out, config.station.id3title, BUFLEN);
-      config.setTitle(out);
-    }else if (strlen(config.station.id3title) == 0) {
-      config.setTitle(config.station.id3artist);
-    }else{
-	  config.setTitle(config.station.id3title);
-	}
+    memset(config.station.id3artist, 0, BUFLEN);
+    strlcpy(config.station.id3artist, info, BUFLEN);
+    config.updateTitle(); 
   }
 }
 
@@ -104,19 +94,9 @@ void audio_id3album(const char *info){
 void audio_id3title(const char *info){
   if(player.lockOutput) return;
   if (printable(info) && strcmp(info, config.station.id3title) != 0){
-	memset(config.station.id3title, 0, BUFLEN);
-	strlcpy(config.station.id3title, info, BUFLEN);
-	if(strlen(config.station.id3title) != 0 && strlen(config.station.id3artist) != 0) {
-      char out[BUFLEN]= {0};
-	  strlcat(out, config.station.id3artist, BUFLEN);
-	  strlcat(out, " - ", BUFLEN);
-	  strlcat(out, info, BUFLEN);
-	  config.setTitle(out);
-    }else if (strlen(config.station.id3artist) == 0) {
-	  config.setTitle(config.station.id3title);
-	}else{
-	  config.setTitle(config.station.id3artist);
-	}
+    memset(config.station.id3title, 0, BUFLEN);
+    strlcpy(config.station.id3title, info, BUFLEN);
+    config.updateTitle();
   }
 }
 
