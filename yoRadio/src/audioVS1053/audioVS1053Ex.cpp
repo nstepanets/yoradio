@@ -1930,14 +1930,16 @@ bool Audio::latinToUTF8(char* buff, size_t bufflen){
     pos = 0;
 
     while(buff[pos] != 0){
-        len = strlen(buff);
-        if(buff[pos] >= 0x80 && buff[pos+1] < 0x80){       // is not UTF8, is latin?
-            for(int i = len+1; i > pos; i--){
+        if ((buff[pos] & 0x80) == 0) {pos++; continue;}
+        else{
+            len = strlen(buff);
+            for(int i = len + 1; i > pos; i--){
                 buff[i+1] = buff[i];
             }
             uint8_t c = buff[pos];
-            buff[pos++] = 0xc0 | ((c >> 6) & 0x1f);      // 2+1+5 bits
-            buff[pos++] = 0x80 | ((char)c & 0x3f);       // 1+1+6 bits
+            buff[pos] = 0xc0 | ((c >> 6)& 0x1f);      // 2+1+5 bits
+            pos++;
+            buff[pos] = 0x80 | ((char)c & 0x3f);      // 1+1+6 bits
         }
         pos++;
         if(pos > bufflen -3){
@@ -3153,17 +3155,15 @@ int Audio::read_ID3_Header(uint8_t *data, size_t len) {
         }
         if(!isUnicode){
             uint16_t j = 0, k = 0;
-            j = 0;
-            k = 0;
             while(j < fs) {
-                if(value[j] == 0x0A) value[j] = 0x20; // replace LF by space
                 if(value[j] > 0x1F) {
-                    value[k] = value[j];
+					value[k] = value[j]; //remove non printables
                     k++;
                 }
                 j++;
-            } //remove non printables
-            if(k>0) value[k] = 0; else value[0] = 0; // new termination
+            }
+			value[k] = '\0';  // new termination
+            latinToUTF8(value, k - 1);
         }
         showID3Tag(frameid, value);
         return fs;
