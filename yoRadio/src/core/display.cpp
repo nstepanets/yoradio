@@ -537,7 +537,7 @@ void Display::flip(){ dsp.flip(); }
 void Display::invert(){ dsp.invert(); }
 
 void  Display::setContrast(){
-  #if DSP_MODEL==DSP_NOKIA5110
+  #if (DSP_MODEL==DSP_NOKIA5110 || DSP_MODEL==DSP_ST7567 || DSP_MODEL==DSP_ST7567I2C)
     dsp.setContrast(config.store.contrast);
   #endif
 }
