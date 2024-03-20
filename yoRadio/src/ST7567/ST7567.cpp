@@ -615,7 +615,7 @@ void ST7567::display(void) {
       uint16_t bytesOut = 1;
       while (bytes_remaining--) {
         if (bytesOut >= WIRE_MAX) {
-          wire->endTransmission(false);
+          wire->endTransmission();
           wire->beginTransmission(i2caddr);
           WIRE_WRITE((uint8_t)0x40);
           bytesOut = 1;
