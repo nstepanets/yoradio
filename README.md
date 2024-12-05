@@ -145,6 +145,7 @@ Rotation of the display:
 
 - <span style="color: red; font-weight: bold; font-size: 22px;text-decoration: underline;">Arduino IDE version 2.x.x is not supported. Use Arduino IDE 1.8.19</span>
 - <span style="color: red; font-weight: bold; font-size: 22px;text-decoration: underline;">ESP32 core version 2.0.0 or higher is [required](https://github.com/espressif/arduino-esp32)!</span>
+- <span style="color: red; font-weight: bold; font-size: 22px;text-decoration: underline;">ESP32 core version 3.x.x or higher is not supported (yet)!</span>
 1. Generate a myoptions.h file for your hardware configuration using [this tool](https://e2002.github.io/docs/myoptions-generator.html).
 2. Put myoptions.h file next to yoRadio.ino.
 3. Replace file Arduino/libraries/Adafruit_GFX_Library/glcdfont.c with file [yoRadio/fonts/glcdfont.c](yoRadio/fonts/glcdfont.c)
@@ -224,11 +225,49 @@ download _http://\<yoradioip\>/data/playlist.csv_ and _http://\<yoradioip\>/data
 
 ---
 ## Plugins
-There is no documentation yet, you will have to deal with the examples, which is in directory [examples/plugins/](https://github.com/e2002/yoradio/tree/main/examples/plugins).\
+The `Plugin` class serves as a base class for creating plugins that hook into various system events.  
+To use it, inherit from `Plugin` and override the necessary virtual methods.  
+Place your new class in the `src/plugins/<MyPlugin>` directory
+More details can be found in the comments within the `yoRadio/src/pluginsManager/pluginsManager.h` file and at [here](https://github.com/e2002/yoradio/blob/main/yoRadio/src/pluginsManager/README.md).  
+Additional examples are provided in the `examples/plugins` folder.
 Work is in progress...
 
 ---
 ## Version history
+#### v0.9.350
+- **Added parameters for configuring `LED_BUILTIN` on ESP32S3 modules:**
+  - `USE_BUILTIN_LED`: Determines whether to use the built-in `LED_BUILTIN` (default is `true`).
+  - `LED_BUILTIN_S3`: Specifies a custom pin for the built-in `LED_BUILTIN`. Used in combination with `USE_BUILTIN_LED = false` (default is `255`).
+
+  **Note:** For ESP32S3 boards, no changes are required by default; the onboard LED will work as expected.  
+  These settings were added to allow disabling the built-in LED or reassigning it to a custom pin.
+
+- **New class for plugin management**, enabling multiple plugins to be assigned to each function.  
+  More details can be found in the comments within the `yoRadio/src/pluginsManager/pluginsManager.h` file and at [here](https://github.com/e2002/yoradio/blob/main/yoRadio/src/pluginsManager/README.md).  
+  Additional examples are provided in the `examples/plugins` folder.
+  **Backward compatibility:** The old method of adding plugins will remain functional for some time in future versions but will eventually be deprecated and removed.
+  
+#### v0.9.342b
+- fixed compilation error for OLED displays
+
+#### v0.9.340b
+- fixed compilation error audioVS1053Ex.cpp:181:5: error: 'sdog' was not declared in this scope
+
+#### v0.9.337b (homeassistant component)
+- fixed the error of subscribing to mqtt topic on some systems
+
+#### v0.9.337b
+- added support for Arduino ESP32 v3.0.0 and later
+- disabled SD indexing on startup; now the card is indexed only if the `data/index.dat` file is missing from the card
+- IRremoteESP8266 library integrated into the project (`yoRadio/src/IRremoteESP8266`)
+
+#### v0.9.313b
+- added support for ESP32-S3 boards (ESP32 S3 Dev Module) (esp32 cores version 3.x.x is not supported yet)
+- fixes in displaying sliders in the web interface
+
+#### v0.9.300 (homeassistant component)
+- HA component >> bug fixes in the component for newer versions of Home Assistant
+
 #### v0.9.300
 - added the ability to play SDCARD without an Internet connection. More in [Wiki](https://github.com/e2002/yoradio/wiki/A-little-about-SD-CARD-and-RTC)
 

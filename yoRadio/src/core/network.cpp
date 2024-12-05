@@ -11,7 +11,7 @@
 	#define WIFI_ATTEMPTS	16
 #endif
 
-Network network;
+MyNetwork network;
 
 TaskHandle_t syncTaskHandle;
 //TaskHandle_t reconnectTaskHandle;
@@ -21,7 +21,7 @@ void doSync(void * pvParameters);
 
 void ticks() {
   if(!display.ready()) return; //waiting for SD is ready
-  
+  pm.on_ticker();
   static const uint16_t weatherSyncInterval=1800;
   //static const uint16_t weatherSyncIntervalFail=10;
 #if RTCSUPPORTED
@@ -73,7 +73,7 @@ void ticks() {
   }
 }
 
-void Network::WiFiReconnected(WiFiEvent_t event, WiFiEventInfo_t info){
+void MyNetwork::WiFiReconnected(WiFiEvent_t event, WiFiEventInfo_t info){
   network.beginReconnect = false;
   player.lockOutput = false;
   delay(100);
@@ -90,7 +90,7 @@ void Network::WiFiReconnected(WiFiEvent_t event, WiFiEventInfo_t info){
   #endif
 }
 
-void Network::WiFiLostConnection(WiFiEvent_t event, WiFiEventInfo_t info){
+void MyNetwork::WiFiLostConnection(WiFiEvent_t event, WiFiEventInfo_t info){
   if(!network.beginReconnect){
     Serial.printf("Lost connection, reconnecting to %s...\n", config.ssids[config.store.lastSSID-1].ssid);
     if(config.getMode()==PM_SDCARD) {
@@ -106,7 +106,7 @@ void Network::WiFiLostConnection(WiFiEvent_t event, WiFiEventInfo_t info){
   WiFi.reconnect();
 }
 
-bool Network::wifiBegin(bool silent){
+bool MyNetwork::wifiBegin(bool silent){
   uint8_t ls = (config.store.lastSSID == 0 || config.store.lastSSID > config.ssidsCount) ? 0 : config.store.lastSSID - 1;
   uint8_t startedls = ls;
   uint8_t errcnt = 0;
@@ -121,7 +121,7 @@ bool Network::wifiBegin(bool silent){
     while (WiFi.status() != WL_CONNECTED) {
       if(!silent) Serial.print(".");
       delay(500);
-      if(LED_BUILTIN!=255 && !silent) digitalWrite(LED_BUILTIN, !digitalRead(LED_BUILTIN));
+      if(REAL_LEDBUILTIN!=255 && !silent) digitalWrite(REAL_LEDBUILTIN, !digitalRead(REAL_LEDBUILTIN));
       errcnt++;
       if (errcnt > WIFI_ATTEMPTS) {
         errcnt = 0;
@@ -158,7 +158,7 @@ void searchWiFi(void * pvParameters){
 
 #define DBGAP false
 
-void Network::begin() {
+void MyNetwork::begin() {
   BOOTLOG("network.begin");
   config.initNetwork();
   ctimer.detach();
@@ -182,7 +182,7 @@ void Network::begin() {
   }
   
   Serial.println("##[BOOT]#\tdone");
-  if(LED_BUILTIN!=255) digitalWrite(LED_BUILTIN, LOW);
+  if(REAL_LEDBUILTIN!=255) digitalWrite(REAL_LEDBUILTIN, LOW);
   
 #if RTCSUPPORTED
 	rtc.getTime(&network.timeinfo);
@@ -191,9 +191,10 @@ void Network::begin() {
 #endif
   ctimer.attach(1, ticks);
   if (network_on_connect) network_on_connect();
+  pm.on_connect();
 }
 
-void Network::setWifiParams(){
+void MyNetwork::setWifiParams(){
   WiFi.setSleep(false);
   WiFi.onEvent(WiFiReconnected, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_GOT_IP);
   WiFi.onEvent(WiFiLostConnection, WiFiEvent_t::ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
@@ -210,7 +211,7 @@ void Network::setWifiParams(){
   }
 }
 
-void Network::requestTimeSync(bool withTelnetOutput, uint8_t clientId) {
+void MyNetwork::requestTimeSync(bool withTelnetOutput, uint8_t clientId) {
   if (withTelnetOutput) {
     char timeStringBuff[50];
     strftime(timeStringBuff, sizeof(timeStringBuff), "%Y-%m-%dT%H:%M:%S", &timeinfo);
@@ -226,7 +227,7 @@ void rebootTime() {
   ESP.restart();
 }
 
-void Network::raiseSoftAP() {
+void MyNetwork::raiseSoftAP() {
   WiFi.mode(WIFI_AP);
   WiFi.softAP(apSsid, apPassword);
   Serial.println("##[BOOT]#");
@@ -240,7 +241,7 @@ void Network::raiseSoftAP() {
     rtimer.once(config.store.softapdelay*60, rebootTime);
 }
 
-void Network::requestWeatherSync(){
+void MyNetwork::requestWeatherSync(){
   display.putRequest(NEWWEATHER);
 }
 

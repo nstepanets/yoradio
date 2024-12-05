@@ -1,3 +1,10 @@
+/*
+ *******************************************************************************************
+ * Attention!
+ * This method of connecting plugins no longer works and is left here for history.
+ *******************************************************************************************
+
+*/
 /**************************************************************
 
     Example of display backlight control depending on playback.
