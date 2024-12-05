@@ -5,7 +5,7 @@
 #include "config.h"
 #include "telnet.h"
 #include "display.h"
-
+#include "sdmanager.h"
 #include "netserver.h"
 
 Player player;
@@ -13,9 +13,9 @@ QueueHandle_t playerQueue;
 
 #if VS1053_CS!=255 && !I2S_INTERNAL
   #if VS_HSPI
-    Player::Player(): Audio(VS1053_CS, VS1053_DCS, VS1053_DREQ, HSPI, 13, 12, 14) {}
+    Player::Player(): Audio(VS1053_CS, VS1053_DCS, VS1053_DREQ, &SPI2) {}
   #else
-    Player::Player(): Audio(VS1053_CS, VS1053_DCS, VS1053_DREQ) {}
+    Player::Player(): Audio(VS1053_CS, VS1053_DCS, VS1053_DREQ, &SPI) {}
   #endif
   void ResetChip(){
     pinMode(VS1053_RST, OUTPUT);
@@ -60,7 +60,6 @@ void Player::init() {
   _status = STOPPED;
   //setOutputPins(false);
   _volTimer=false;
-  playmutex = xSemaphoreCreateMutex();
   //randomSeed(analogRead(0));
   #if PLAYER_FORCE_MONO
     forceMono(true);
@@ -110,11 +109,12 @@ void Player::_stop(bool alreadyStopped){
   if(!alreadyStopped) stopSong();
   if(!lockOutput) stopInfo();
   if (player_on_stop_play) player_on_stop_play();
+  pm.on_stop_play();
 }
 
 void Player::initHeaders(const char *file) {
   if(strlen(file)==0 || true) return; //TODO Read TAGs
-  connecttoFS(SD,file);
+  connecttoFS(sdman,file);
   eofHeader = false;
   while(!eofHeader) Audio::loop();
   //netserver.requestOnChange(SDPOS, 0);
@@ -137,6 +137,7 @@ void Player::loop() {
         }
         _play((uint16_t)abs(requestP.payload)); 
         if (player_on_station_change) player_on_station_change(); 
+        pm.on_station_change();
         break;
       }
       case PR_VOL: {
@@ -146,16 +147,14 @@ void Player::loop() {
       }
       #ifdef USE_SD
       case PR_CHECKSD: {
-        config.checkSD();
+        sdman.checkSD();
         break;
       }
       #endif
       default: break;
     }
   }
-  xSemaphoreTake(playmutex, portMAX_DELAY);
   Audio::loop();
-  xSemaphoreGive(playmutex);
   if(!isRunning() && _status==PLAYING) _stop(true);
   if(_volTimer){
     if((millis()-_volTicks)>3000){
@@ -171,7 +170,7 @@ void Player::loop() {
 }
 
 void Player::setOutputPins(bool isPlaying) {
-  if(LED_BUILTIN!=255) digitalWrite(LED_BUILTIN, LED_INVERT?!isPlaying:isPlaying);
+  if(REAL_LEDBUILTIN!=255) digitalWrite(REAL_LEDBUILTIN, LED_INVERT?!isPlaying:isPlaying);
   bool _ml = MUTE_LOCK?!MUTE_VAL:(isPlaying?!MUTE_VAL:MUTE_VAL);
   if(MUTE_PIN!=255) digitalWrite(MUTE_PIN, _ml);
 }
@@ -199,7 +198,7 @@ void Player::_play(uint16_t stationId) {
   config.setSmartStart(0);
   bool isConnected = false;
   if(config.getMode()==PM_SDCARD && SDC_CS!=255)
-    isConnected=connecttoFS(SD,config.station.url,config.sdResumePos==0?_resumeFilePos:config.sdResumePos-player.sd_min);
+    isConnected=connecttoFS(sdman,config.station.url,config.sdResumePos==0?_resumeFilePos:config.sdResumePos-player.sd_min);
   else {
   	config.store.play_mode=PM_WEB;
   	config.save();
@@ -218,6 +217,7 @@ void Player::_play(uint16_t stationId) {
     setOutputPins(true);
     display.putRequest(PSTART);
     if (player_on_start_play) player_on_start_play();
+    pm.on_start_play();
   }else{
     telnet.printf("##ERROR#:\tError connecting to %s\n", config.station.url);
     SET_PLAY_ERROR("Error connecting to %s", config.station.url);
@@ -242,6 +242,7 @@ void Player::browseUrl(){
     setOutputPins(true);
     display.putRequest(PSTART);
     if (player_on_start_play) player_on_start_play();
+    pm.on_start_play();
   }else{
     telnet.printf("##ERROR#:\tError connecting to %s\n", burl);
     SET_PLAY_ERROR("Error connecting to %s", burl);
