@@ -1080,5 +1080,5 @@ const uint16_t vs1063_plugin[] = { /* Compressed plugin */
 	0x1cc7,0x1cc7,0x1cd7,0x1cd7,0x1cd7,0x1ce7,
 	0x000a,0x0001, /*copy 1*/
 	0x0050,
-#define VS1063_PLUGIN_SIZE 8314
 };
+#define VS1063_PLUGIN_SIZE 8314

@@ -2,7 +2,7 @@
  *  vs1053_ext.h
  *
  *  Created on: Jul 09.2017
- *  Updated on: Aug 15.2022
+ *  Updated on: Aug 16.2022
  *      Author: Wolle
  */
 
@@ -189,8 +189,7 @@ private:
     const uint8_t SM_LINE1          = 14 ;          // Bitnumber in SCI_MODE for Line input
 
     SPIClass*       spi_VS1053 = NULL;
-    SPISettings     VS1053_SPI_DATA;                // SPI settings normal speed
-    SPISettings     VS1053_SPI_CTL;                 // SPI settings control mode
+    SPISettings     VS1053_SPI;
 
     char            chbuf[512];
     char            m_lastHost[256];                // Store the last URL to a webstream
