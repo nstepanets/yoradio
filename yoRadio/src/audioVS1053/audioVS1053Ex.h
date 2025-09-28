@@ -243,6 +243,7 @@ private:
     uint16_t        m_timeout_ms_ssl = 2700;
     uint32_t        m_metacount=0;                  // Number of bytes in metadata
     uint16_t        m_m3u8_targetDuration = 10;     //
+    uint16_t        ssVer = 0;
     int             m_controlCounter = 0;           // Status within readID3data() and readWaveHeader()
     bool            m_f_running = false;
     bool            m_f_webstream = false ;         // Play from URL

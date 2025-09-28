@@ -327,13 +327,24 @@ void Audio::begin(){
 
     // Init SPI in slow mode (0.2 MHz)
     VS1053_SPI = SPISettings(200000, MSBFIRST, SPI_MODE0);
-    // printDetails("Right after reset/startup");
+
+    // Start initialization with a dummy read, which makes sure our
+    // microcontoller chips selects and everything are where they
+    // are supposed to be and that VS10xx's SCI bus is in a known state.
+    read_register(SCI_MODE);
+
     // Most VS1053 modules will start up in midi mode.  The result is that there is no audio
     // when playing MP3.  You can modify the board, but there is a more elegant way:
     wram_write(0xC017, 3);                                  // GPIO DDR=3
     wram_write(0xC019, 0);                                  // GPIO ODATA=0
-    // printDetails("After test loop");
+
+    // First real operation is a software reset. After the software
+    // reset we know what the status of the IC is.
     softReset();                                            // Do a soft reset
+
+    // Check VS10xx type: SS_VER is 0 for VS1001, 1 for VS1011, 2 for VS1002, 3 for VS1003,
+    // 4 for VS1053 and VS8053, 5 for VS1033, 6 for VS1063/VS1163, 7 for VS1103, and 8 for VS1073
+    ssVer = ((read_register(SCI_STATUS) >> 4) & 15);
 
     // Switch on the analog parts
     write_register(SCI_AUDATA, 44100 + 1);                  // 44.1kHz + stereo
@@ -2864,6 +2875,7 @@ bool Audio::httpPrint(const char* host) {
 }
 //---------------------------------------------------------------------------------------------------------------------
 void Audio::loadUserCode(void) {
+  if(ssVer != 4) return;
   int i = 0;
 
   while (i<sizeof(flac_plugin)/sizeof(flac_plugin[0])) {
