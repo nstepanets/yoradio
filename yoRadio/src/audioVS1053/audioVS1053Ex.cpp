@@ -4,7 +4,7 @@
  *  vs1053_ext.cpp
  *
  *  Created on: Jul 09.2017
- *  Updated on: Aug 15.2022
+ *  Updated on: Aug 16.2022
  *      Author: Wolle
  */
 #ifndef VS_PATCH_ENABLE
@@ -142,9 +142,12 @@ uint32_t AudioBuffer::getReadPos() {
 //---------------------------------------------------------------------------------------------------------------------
 // **** VS1053 Impl ****
 //---------------------------------------------------------------------------------------------------------------------
-Audio::Audio(uint8_t _cs_pin, uint8_t _dcs_pin, uint8_t _dreq_pin, SPIClass *spi) :
-        cs_pin(_cs_pin), dcs_pin(_dcs_pin), dreq_pin(_dreq_pin)
+Audio::Audio(uint8_t _cs_pin, uint8_t _dcs_pin, uint8_t _dreq_pin, SPIClass *spi)
 {
+    dreq_pin = _dreq_pin;
+    dcs_pin  = _dcs_pin;
+    cs_pin   = _cs_pin;
+
     spi_VS1053 = spi;
     spi_VS1053->begin();
     clientsecure.setInsecure();                 // update to ESP32 Arduino version 1.0.5-rc05 or higher
@@ -181,13 +184,13 @@ void Audio::control_mode_off()
 }
 void Audio::control_mode_on()
 {
-    spi_VS1053->beginTransaction(VS1053_SPI_CTL);   // Prevent other SPI users
+    spi_VS1053->beginTransaction(VS1053_SPI);       // Prevent other SPI users
     DCS_HIGH();                                     // Bring slave in control mode
     CS_LOW();
 }
 void Audio::data_mode_on()
 {
-    spi_VS1053->beginTransaction(VS1053_SPI_DATA);  // Prevent other SPI users
+    spi_VS1053->beginTransaction(VS1053_SPI);       // Prevent other SPI users
     CS_HIGH();                                      // Bring slave in data mode
     DCS_LOW();
 }
@@ -294,29 +297,31 @@ uint16_t Audio::wram_read(uint16_t address){
 //---------------------------------------------------------------------------------------------------------------------
 void Audio::begin(){
 
-    pinMode(dreq_pin, INPUT);                               // DREQ is an input
+    pinMode(dreq_pin, INPUT_PULLUP);                        // DREQ is an input
     pinMode(cs_pin, OUTPUT);                                // The SCI and SDI signals
     pinMode(dcs_pin, OUTPUT);
     DCS_HIGH();
     CS_HIGH();
     delay(170);
 
-    VS1053_SPI_CTL   = SPISettings( 250000, MSBFIRST, SPI_MODE0);
-    VS1053_SPI_DATA  = SPISettings(8000000, MSBFIRST, SPI_MODE0); // SPIDIV 10 -> 80/10=8.00 MHz
+    VS1053_SPI._clock    = 250000;
+    VS1053_SPI._bitOrder = MSBFIRST;
+    VS1053_SPI._dataMode = SPI_MODE0;
     // printDetails("Right after reset/startup");
-    //loadUserCode(); // load in VS1053B if you want to play flac
     // Most VS1053 modules will start up in midi mode.  The result is that there is no audio
     // when playing MP3.  You can modify the board, but there is a more elegant way:
     wram_write(0xC017, 3);                                  // GPIO DDR=3
     wram_write(0xC019, 0);                                  // GPIO ODATA=0
     // printDetails("After test loop");
     softReset();                                            // Do a soft reset
+
     // Switch on the analog parts
     write_register(SCI_AUDATA, 44100 + 1);                  // 44.1kHz + stereo
     // The next clocksetting allows SPI clocking at 5 MHz, 4 MHz is safe then.
     write_register(SCI_CLOCKF, 6 << 12);                    // Normal clock settings multiplyer 3.0=12.2 MHz
+    VS1053_SPI._clock = 4000000;
     write_register(SCI_MODE, _BV (SM_SDINEW) | _BV(SM_LINE1));
-    // testComm("Fast SPI, Testing VS1053 read/write registers again... \n");
+
     await_data_request();
     //set vu meter
     setVUmeter();
@@ -1798,7 +1803,7 @@ bool Audio::connecttohost(const char* host, const char* user, const char* pwd) {
     }
 
     AUDIO_INFO("Connect to new host: \"%s\"", l_host);
-    setDefaults(); // no need to stop clients if connection is established (default is true)
+    setDefaults();
 
     if(startsWith(l_host, "https")) m_f_ssl = true;
     else                            m_f_ssl = false;
