@@ -1464,7 +1464,7 @@ const char* Audio::parsePlaylist_M3U(){
             break;
         }
     }
-    vector_clear_and_shrink(m_playlistContent);
+    // vector_clear_and_shrink(m_playlistContent);
     return host;
 }
 //----------------------------------------------------------------------------------------------------------------------
