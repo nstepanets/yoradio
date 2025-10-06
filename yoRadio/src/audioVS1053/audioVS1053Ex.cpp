@@ -4,7 +4,7 @@
  *  vs1053_ext.cpp
  *
  *  Created on: Jul 09.2017
- *  Updated on: Oct 20.2022
+ *  Updated on: Dec 05.2022
  *      Author: Wolle
  */
 #ifndef VS_PATCH_ENABLE
@@ -2190,8 +2190,10 @@ uint32_t Audio::stop_mp3client(){
         audiofile.close();
         setDatamode(AUDIO_NONE);
     }
+    stopSong();
     int v=read_register(SCI_VOL);
-    m_f_webstream=false;
+    m_f_webstream = false;
+    m_f_running = false;
     write_register(SCI_VOL, 0);                         // Mute while stopping
     #ifdef ESP_ARDUINO_3
     _client->clear();                                     // Flush stream client
