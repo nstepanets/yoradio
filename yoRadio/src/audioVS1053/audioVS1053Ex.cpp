@@ -4,7 +4,7 @@
  *  vs1053_ext.cpp
  *
  *  Created on: Jul 09.2017
- *  Updated on: Apr 08.2023
+ *  Updated on: Apr 22.2023
  *      Author: Wolle
  */
 #ifndef VS_PATCH_ENABLE
@@ -528,6 +528,11 @@ uint32_t Audio::printChipID(){
     return chipID;
 }
 //---------------------------------------------------------------------------------------------------------------------
+
+uint32_t Audio::getBitRate(){
+    return (wram_read(0x1e05) & 0xFF) * 1000;  // Kbit/s => bit/s
+}
+//---------------------------------------------------------------------------------------------------------------------
 void Audio::showstreamtitle(const char* ml) {
     // example for ml:
     // StreamTitle='Oliver Frank - Mega Hitmix';StreamUrl='www.radio-welle-woerthersee.at';
@@ -822,6 +827,7 @@ void Audio::processLocalFile() {
         if(bytesDecoded > 0) {InBuff.bytesWasRead(bytesDecoded);}
         return;
     }
+
     if(!bytesAddedToBuffer) {  // eof
         bytesCanBeRead = InBuff.bufferFilled();
         if(bytesCanBeRead > 200){
@@ -1039,7 +1045,7 @@ void Audio::processWebStreamTS() {
     if(f_stream){
         static uint8_t cnt = 0;
         cnt++;
-        if(cnt == 3){playAudioData(); cnt = 0;} // aac only
+        if(cnt == 1){playAudioData(); cnt = 0;} // aac only
     }
     return;
 }
@@ -1141,7 +1147,7 @@ void Audio::processWebStreamHLS() {
     if(f_stream){
         static uint8_t cnt = 0;
         cnt++;
-        if(cnt == 3){playAudioData(); cnt = 0;} // aac only
+        if(cnt == 1){playAudioData(); } // aac only
     }
     return;
 }

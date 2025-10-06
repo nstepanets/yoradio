@@ -2,7 +2,7 @@
  *  vs1053_ext.h
  *
  *  Created on: Jul 09.2017
- *  Updated on: Apr 08.2023
+ *  Updated on: Apr 22.2023
  *      Author: Wolle
  */
 
@@ -316,6 +316,7 @@ public:
     void     printDetails(const char* str);             // Print configuration details to serial output.
     uint8_t  printVersion();                            // Returns version of vs1053 chip
     uint32_t printChipID();                             // Returns chipID of vs1053 chip
+    uint32_t getBitRate();                              // average br from WRAM register
     void     softReset() ;                              // Do a soft reset
     void     loop();
     void     setConnectionTimeout(uint16_t timeout_ms, uint16_t timeout_ms_ssl);
