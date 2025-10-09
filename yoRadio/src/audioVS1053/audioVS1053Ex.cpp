@@ -4,7 +4,7 @@
  *  vs1053_ext.cpp
  *
  *  Created on: Jul 09.2017
- *  Updated on: Jun 18.2023
+ *  Updated on: Jul 03.2023
  *      Author: Wolle
  */
 #ifndef VS_PATCH_ENABLE
@@ -1757,7 +1757,7 @@ bool Audio::latinToUTF8(char* buff, size_t bufflen){
     uint16_t len = strlen(buff);
     uint8_t  c;
 
-    while(pos < len){
+    while(pos < len - 2){
         c = buff[pos];
         if(c >= 0xC2) {    // is UTF8 char
             pos++;
