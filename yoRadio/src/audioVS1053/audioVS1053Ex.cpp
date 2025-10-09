@@ -4,7 +4,7 @@
  *  vs1053_ext.cpp
  *
  *  Created on: Jul 09.2017
- *  Updated on: Jul 03.2023
+ *  Updated on: Jul 05.2023
  *      Author: Wolle
  */
 #ifndef VS_PATCH_ENABLE
@@ -158,7 +158,13 @@ Audio::Audio(uint8_t _cs_pin, uint8_t _dcs_pin, uint8_t _dreq_pin, SPIClass *spi
     #define __malloc_heap_psram(size) \
         heap_caps_malloc_prefer(size, 2, MALLOC_CAP_DEFAULT|MALLOC_CAP_SPIRAM, MALLOC_CAP_DEFAULT|MALLOC_CAP_INTERNAL)
     if(psramInit()) m_chbufSize = 4096; else m_chbufSize = 512 + 64;
+    m_ibuff    = (char*)    __malloc_heap_psram(512 + 64);
+    m_lastHost = (char*)    __malloc_heap_psram(512);
     m_chbuf    = (char*)    __malloc_heap_psram(m_chbufSize);
+
+    if(!m_chbuf || !m_lastHost || !m_ibuff) log_e("oom");
+
+    #define AUDIO_INFO(...) {sprintf(m_ibuff,__VA_ARGS__); if(audio_info) audio_info(m_ibuff);}
 
     clientsecure.setInsecure();                 // update to ESP32 Arduino version 1.0.5-rc05 or higher
     m_endFillByte=0;
@@ -168,6 +174,8 @@ Audio::Audio(uint8_t _cs_pin, uint8_t _dcs_pin, uint8_t _dreq_pin, SPIClass *spi
 Audio::~Audio(){
     // destructor
     if(m_chbuf)    {free(m_chbuf);    m_chbuf    = NULL;}
+    if(m_lastHost) {free(m_lastHost); m_lastHost = NULL;}
+    if(m_ibuff)    {free(m_ibuff);    m_ibuff    = NULL;}
 }
 //---------------------------------------------------------------------------------------------------------------------
 void Audio::initInBuff() {
@@ -2302,7 +2310,7 @@ bool Audio::connecttohost(const char* host, const char* user, const char* pwd) {
 
     uint16_t lenHost = strlen(host);
 
-    if(lenHost >= 512 - 10) {
+    if(lenHost >= 512 + 64 - 10) {
         AUDIO_INFO("Hostaddress is too long");
         if(audio_error) audio_error("Hostaddress is too long");
         return false;
@@ -2310,16 +2318,12 @@ bool Audio::connecttohost(const char* host, const char* user, const char* pwd) {
 
     int idx = indexOf(host, "http");
     char* l_host = (char*)malloc(lenHost + 10);
-    if(idx < 0) {
-		strcpy(l_host, "http://");
-		strcat(l_host, host);
-	}                                       // amend "http;//" if not found
+    if(idx < 0){strcpy(l_host, "http://"); strcat(l_host, host); } // amend "http;//" if not found
     else       {strcpy(l_host, (host + idx));}                     // trim left if necessary
 
     char* h_host = NULL; // pointer of l_host without http:// or https://
     if(startsWith(l_host, "https")) h_host = strdup(l_host + 8);
-    else
-		h_host = strdup(l_host + 7);
+    else                            h_host = strdup(l_host + 7);
 
     // initializationsequence
     int16_t pos_slash;                                        // position of "/" in hostname
@@ -2359,8 +2363,7 @@ bool Audio::connecttohost(const char* host, const char* user, const char* pwd) {
     setDefaults();  // no need to stop clients if connection is established (default is true)
 
     if(startsWith(l_host, "https")) m_f_ssl = true;
-    else
-		m_f_ssl = false;
+    else                            m_f_ssl = false;
 
     // optional basic authorization
 	uint16_t auth = strlen(user) + strlen(pwd);
@@ -2401,10 +2404,7 @@ bool Audio::connecttohost(const char* host, const char* user, const char* pwd) {
 	//    } fix in V2.0.8
     bool res = true; // no need to reconnect if connection exists
 
-    if(m_f_ssl) {
-		_client = static_cast<WiFiClient*>(&clientsecure);
-		if(port == 80) port = 443;
-	}
+    if(m_f_ssl){ _client = static_cast<WiFiClient*>(&clientsecure); if(port == 80) port = 443;}
     else       { _client = static_cast<WiFiClient*>(&client);}
 
     uint32_t t = millis();
