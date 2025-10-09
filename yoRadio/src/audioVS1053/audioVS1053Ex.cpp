@@ -4,7 +4,7 @@
  *  vs1053_ext.cpp
  *
  *  Created on: Jul 09.2017
- *  Updated on: Jul 05.2023
+ *  Updated on: Jul 20.2023
  *      Author: Wolle
  */
 #ifndef VS_PATCH_ENABLE
@@ -2449,8 +2449,8 @@ bool Audio::connecttohost(const char* host, const char* user, const char* pwd) {
 		if(endsWith(extension, "/opus"))  m_expectedCodec = CODEC_OPUS;
         if(endsWith(extension, ".asx"))  m_expectedPlsFmt = FORMAT_ASX;
         if(endsWith(extension, ".m3u"))  m_expectedPlsFmt = FORMAT_M3U;
-        if(endsWith(extension, ".m3u8")) m_expectedPlsFmt = FORMAT_M3U8;
         if(endsWith(extension, ".pls"))  m_expectedPlsFmt = FORMAT_PLS;
+        if(endsWith(extension, ".m3u8")){m_expectedPlsFmt = FORMAT_M3U8; if(audio_lasthost) audio_lasthost(host);}
 
         setDatamode(HTTP_RESPONSE_HEADER);   // Handle header
         m_streamType = ST_WEBSTREAM;
