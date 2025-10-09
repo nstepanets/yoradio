@@ -4,7 +4,7 @@
  *  vs1053_ext.cpp
  *
  *  Created on: Jul 09.2017
- *  Updated on: Jun 17.2023
+ *  Updated on: Jun 18.2023
  *      Author: Wolle
  */
 #ifndef VS_PATCH_ENABLE
@@ -1312,7 +1312,7 @@ bool Audio::readPlayListData() {
 
     // reads the content of the playlist and stores it in the vector m_contentlength
     // m_contentlength is a table of pointers to the lines
-    char pl[512]; // playlistLine
+    char pl[512] = {0}; // playlistLine
     uint32_t ctl  = 0;
     int lines = 0;
     // delete all memory in m_playlistContent
@@ -2197,6 +2197,7 @@ void Audio::setDefaults(){
     m_f_ts = false;
     m_f_m3u8data = false;                                   // set again in processM3U8entries() if necessary
     setDatamode(AUDIO_NONE);
+    m_contentlength = 0;                                    // If Content-Length is known, count it
     m_streamTitleHash = 0;
     m_streamUrlHash = 0;
     m_streamType = ST_NONE;
