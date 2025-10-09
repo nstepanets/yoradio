@@ -4,7 +4,7 @@
  *  vs1053_ext.cpp
  *
  *  Created on: Jul 09.2017
- *  Updated on: Jun 16.2023
+ *  Updated on: Jun 17.2023
  *      Author: Wolle
  */
 #ifndef VS_PATCH_ENABLE
@@ -2481,9 +2481,15 @@ bool Audio::httpPrint(const char* host) {
     }
 
     char* h_host = NULL; // pointer of l_host without http:// or https://
-    if(m_f_ssl) h_host = strdup(host + 8);
-    else
-		h_host = strdup(host + 7);
+
+    if(startsWith(host, "https")){
+        h_host = strdup(host + 8);
+        m_f_ssl = true;
+    }
+    else{
+        h_host = strdup(host + 7);
+        m_f_ssl = false;
+    }
 
     int16_t pos_slash;                                        // position of "/" in hostname
     int16_t pos_colon;                                        // position of ":" in hostname
