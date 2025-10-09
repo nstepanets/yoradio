@@ -4,7 +4,7 @@
  *  vs1053_ext.cpp
  *
  *  Created on: Jul 09.2017
- *  Updated on: May 20.2023
+ *  Updated on: May 24.2023
  *      Author: Wolle
  */
 #ifndef VS_PATCH_ENABLE
@@ -1270,6 +1270,15 @@ void Audio::processWebFile(){
         if(cnt == compression){playAudioData(); cnt = 0;}
     }
     return;
+}
+//---------------------------------------------------------------------------------------------------------------------
+bool Audio::pauseResume() {
+    bool retVal = false;
+    if(getDatamode() == AUDIO_LOCALFILE || m_streamType == ST_WEBSTREAM) {
+        m_f_running = !m_f_running;
+        retVal = true;
+    }
+    return retVal;
 }
 //---------------------------------------------------------------------------------------------------------------------
 void Audio::playAudioData(){
