@@ -2102,6 +2102,7 @@ bool Audio::parseContentType(char* ct) {
     else if(!strcmp(ct, "audio/x-mpegurl"))  ct_val = CT_M3U;
     else if(!strcmp(ct, "audio/ms-asf"))     ct_val = CT_ASX;
     else if(!strcmp(ct, "video/x-ms-asf"))   ct_val = CT_ASX;
+    else if(!strcmp(ct, "audio/x-ms-asx"))   ct_val = CT_ASX; // #413
 
     else if(!strcmp(ct, "application/ogg"))  ct_val = CT_OGG;
     else if(!strcmp(ct, "audio/ogg"))        ct_val = CT_OGG;
