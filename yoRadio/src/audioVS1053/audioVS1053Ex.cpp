@@ -1781,6 +1781,23 @@ const char* Audio::m3u8redirection(){
     }
     else { tmp = strdup(m_playlistContent[choosenLine]); }
 
+    if(startsWith(m_playlistContent[choosenLine], "../")){
+        // ../../2093120-b/RISMI/stream01/streamPlaylist.m3u8
+        if(tmp) { free(tmp); tmp = NULL;}
+        tmp = (char*)malloc(strlen(m_lastHost) + strlen(m_playlistContent[choosenLine]));
+        strcpy(tmp, m_lastHost);
+        int idx1 = lastIndexOf(tmp, "/");
+        tmp[idx1] = '\0';
+
+        while(startsWith(m_playlistContent[choosenLine], "../")){
+            memcpy(m_playlistContent[choosenLine], m_playlistContent[choosenLine] + 3, strlen(m_playlistContent[choosenLine] +3) + 1); // shift << 3
+            idx1 = lastIndexOf(tmp, "/");
+            tmp[idx1] = '\0';
+        }
+        strcat(tmp, "/");
+        strcat(tmp, m_playlistContent[choosenLine]);
+    }
+
     if(m_playlistContent[choosenLine]) {
         free(m_playlistContent[choosenLine]);
         m_playlistContent[choosenLine] = NULL;
