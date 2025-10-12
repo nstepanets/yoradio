@@ -1961,48 +1961,36 @@ bool Audio::latinToUTF8(char* buff, size_t bufflen){
     // converted to UTF-8. If UTF-8 is already present, nothing is done and true is returned.
     // A conversion to UTF-8 extends the string. Therefore it is necessary to know the buffer size. If the converted
     // string does not fit into the buffer, false is returned
-    // utf8 bytelength: >=0xF0 3 bytes, >=0xE0 2 bytes, >=0xC0 1 byte, e.g. e293ab is ⓫
 
-    uint16_t pos = 0;
-    uint8_t  ext_bytes = 0;
-    uint16_t len = strlen(buff);
-    uint8_t  c;
+    uint16_t in = 0;
+    uint16_t out = 0;
 
-    while(pos < len - 2){
-        c = buff[pos];
-        if(c >= 0xC2) {    // is UTF8 char
-            pos++;
-            if(c >= 0xC0 && buff[pos] < 0x80) {ext_bytes++; pos++;}
-            if(c >= 0xE0 && buff[pos] < 0x80) {ext_bytes++; pos++;}
-            if(c >= 0xF0 && buff[pos] < 0x80) {ext_bytes++; pos++;}
+    char* iso8859_1 = x_strdup(buff);
+
+    while(iso8859_1[in] != '\0'){
+        if(iso8859_1[in] < 0x80){
+            buff[out] = iso8859_1[in];
+            out++;
+            in++;
+            if(out > bufflen) goto exit;
         }
-        else pos++;
-    }
-    if(!ext_bytes) return true; // is UTF-8, do nothing
-
-    pos = 0;
-
-    while(buff[pos] != 0){
-        if ((buff[pos] & 0x80) == 0) {pos++; continue;}
         else{
-            len = strlen(buff);
-            for(int i = len + 1; i > pos; i--){
-                buff[i+1] = buff[i];
-            }
-            uint8_t c = buff[pos];
-            buff[pos] = 0xc0 | ((c >> 6)& 0x1f);      // 2+1+5 bits
-            pos++;
-            buff[pos] = 0x80 | ((char)c & 0x3f);      // 1+1+6 bits
-        }
-        pos++;
-        if(pos > bufflen -3){
-            buff[bufflen -1] = '\0';
-            return false; // do not overwrite
+            buff[out] = (0xC0 | iso8859_1[in] >> 6);
+            out++;
+            if(out + 1 > bufflen) goto exit;
+            buff[out] = (0x80 | (iso8859_1[in] & 0x3F));
+            out++;
+            in++;
         }
     }
+    buff[out] = '\0';
+    if(iso8859_1) {free(iso8859_1); iso8859_1 = NULL;}
     return true;
-}
 
+exit:
+    if(iso8859_1) {free(iso8859_1); iso8859_1 = NULL;}
+    return false;
+}
 //---------------------------------------------------------------------------------------------------------------------
 bool Audio::parseHttpResponseHeader() { // this is the response to a GET / request
     static uint32_t notavailablefor = 0;
@@ -3273,7 +3261,7 @@ int Audio::read_ID3_Header(uint8_t *data, size_t len) {
                 j++;
             }
             m_ibuff[k] = '\0';  // new termination
-            latinToUTF8(m_ibuff, k - 1);
+            latinToUTF8(m_ibuff, m_ibuffSize);
         }
         showID3Tag(frameid, m_ibuff);
         return fs;
