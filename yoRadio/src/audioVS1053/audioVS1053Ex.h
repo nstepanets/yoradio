@@ -300,7 +300,7 @@ protected:
     bool     STfromEXTINF(char* str);
     size_t   process_m3u8_ID3_Header(uint8_t* packet);
     bool     parseContentType(char* ct);
-    bool     latinToUTF8(char* buff, size_t bufflen);
+    bool     latinToUTF8(char* buff, size_t bufflen, bool UTF8check = true);
     bool     parseHttpResponseHeader();
     void     UTF8toASCII(char* str);
     void     unicode2utf8(char* buff, uint32_t len);
