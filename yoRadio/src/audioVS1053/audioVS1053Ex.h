@@ -494,6 +494,17 @@ public:
         return hash;
 	}
 
+    char* x_strdup(const char* str){
+        if(m_f_psramFound){
+            char* s = (char*)ps_malloc(strlen(str) + 1);
+            strcpy(s, str);
+            return s;
+        }
+        else{
+            return strdup(str);
+        }
+    }
+
     inline uint8_t  getDatamode(){return m_datamode;}
     inline void     setDatamode(uint8_t dm){m_datamode=dm;}
     inline uint32_t streamavail(){ return _client ? _client->available() : 0;}

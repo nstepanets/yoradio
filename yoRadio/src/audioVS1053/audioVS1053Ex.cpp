@@ -553,10 +553,11 @@ void Audio::showstreamtitle(const char* ml) {
     int16_t idx1, idx2, idx4, idx5, idx6, idx7, titleLen = 0, artistLen = 0;
     uint16_t i = 0, hash = 0;
 
-    idx1 = indexOf(ml, "StreamTitle=", 0);  // Streamtitle found
+    idx1 = indexOf(ml, "StreamTitle=", 0);         // Streamtitle found
+    if(idx1 < 0) idx1 = indexOf(ml, "Title:", 0);  // Title found (e.g. https://stream-hls.bauermedia.pt/comercial.aac/playlist.m3u8)
 
     if(idx1 >= 0){
-        if(indexOf(ml, "xml version=", 12) > 0){
+        if(indexOf(ml, "xml version=", 7) > 0) {
 
             /* e.g. xmlStreamTitle
             StreamTitle='<?xml version="1.0" encoding="utf-8"?><RadioInfo><Table><DB_ALBUM_ID>37364</DB_ALBUM_ID>
@@ -597,10 +598,22 @@ void Audio::showstreamtitle(const char* ml) {
                 memcpy(title + titleLen + 3, ml + idx6, artistLen); title[titleLen + 3 + artistLen] = '\0';
             }
 
-
-            if(title) if(audio_showstreamtitle) audio_showstreamtitle(title);
-            if(title)  {free(title); title = NULL;}
-            if(artist) {free(artist); artist = NULL;}
+            if(title){
+                while(i < strlen(title)) {
+                    hash += title[i] * i + 1;
+                    i++;
+                }              
+                if(m_streamTitleHash != hash) {
+                    m_streamTitleHash = hash;
+                    if(audio_showstreamtitle) audio_showstreamtitle(title);
+                }
+                free(title);
+                title = NULL;
+            }
+            if(artist) {
+                free(artist);
+                artist = NULL;
+            }
             return;
         }
 
@@ -1357,8 +1370,8 @@ bool Audio::readPlayListData() {
             //    if(pl[pos] == '&' ) {pl[pos] = '\0'; pos++; break;}
                 if(pl[pos] == '\r') {pl[pos] = '\0'; pos++; continue;;}
                 pos++;
-                if(pos == 511){ pos--; continue;}
-                if(pos == 510) {pl[pos] = '\0';}
+                if(pos == 510){ pos--; continue;}
+                if(pos == 509) {pl[pos] = '\0';}
                 if(ctl == chunksize) {pl[pos] = '\0'; break;}
                 if(ctl == m_contentlength) {pl[pos] = '\0'; break;}
             }
@@ -1374,7 +1387,7 @@ bool Audio::readPlayListData() {
 
         if(startsWith(pl, "<!DOCTYPE")) {AUDIO_INFO("url is a webpage!"); goto exit;}
         if(startsWith(pl, "<html"))     {AUDIO_INFO("url is a webpage!"); goto exit;}
-        if(strlen(pl) > 0) m_playlistContent.push_back(strdup((const char*)pl));
+        if(strlen(pl) > 0) m_playlistContent.push_back(x_strdup(pl));
         if(!m_f_psramFound && m_playlistContent.size() == 101){
             AUDIO_INFO("the number of lines in playlist > 100, for bigger playlist use PSRAM!");
             break;
@@ -3382,7 +3395,8 @@ void Audio::showID3Tag(const char* tag, const char* value){
     if(!strcmp(tag, "XDOR")) sprintf(m_chbuf, "OriginalReleaseTime: %s", value);
 
     latinToUTF8(m_chbuf, sizeof(m_chbuf));
-    if(m_chbuf[0] != 0) if(audio_id3data) audio_id3data(m_chbuf);
+    if(indexOf(m_chbuf, "?xml", 0) > 0) {showstreamtitle(m_chbuf); return;}
+    if(m_chbuf[0] != 0){if(audio_id3data) audio_id3data(m_chbuf);}
 }
 //---------------------------------------------------------------------------------------------------------------------
 uint32_t Audio::getFileSize(){
