@@ -2367,6 +2367,8 @@ void Audio::setDefaults(){
       if(_client) _client->stop();
       _client = static_cast<WiFiClient*>(&client); /* default to *something* so that no NULL deref can happen */
     }
+    if(m_lastM3U8host){free(m_lastM3U8host); m_lastM3U8host = NULL;}
+
     m_f_timeout = false;
     m_f_ctseen=false;                                       // Contents type not seen yet
     m_metaint=0;                                            // No metaint yet
