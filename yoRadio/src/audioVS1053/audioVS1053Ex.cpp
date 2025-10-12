@@ -1392,6 +1392,9 @@ bool Audio::readPlayListData() {
             AUDIO_INFO("the number of lines in playlist > 100, for bigger playlist use PSRAM!");
             break;
         }
+        if(m_playlistContent.size() && m_playlistContent.size() % 1000 == 0) {
+            AUDIO_INFO("current playlist line: %lu", (long unsigned)m_playlistContent.size());
+        }
         // termination conditions
         // 1. The http response header returns a value for contentLength -> read chars until contentLength is reached
         // 2. no contentLength, but Transfer-Encoding:chunked -> compute chunksize and read until chunksize is reached
