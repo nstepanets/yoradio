@@ -1661,7 +1661,7 @@ const char* Audio::parsePlaylist_M3U8() {
         vector_clear_and_shrink(m_playlistContent); //clear after reading everything, m_playlistContent.size is now 0
     }
 
-    if(m_playlistURL.size() > 0){
+    if(m_playlistURL.size() > 1){
         if(m_playlistBuff) {free(m_playlistBuff); m_playlistBuff = NULL;}
 
         if(m_playlistURL[m_playlistURL.size() -1]) {
