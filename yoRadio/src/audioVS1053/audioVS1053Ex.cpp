@@ -1312,7 +1312,7 @@ void Audio::processWebFile(){
 //---------------------------------------------------------------------------------------------------------------------
 bool Audio::pauseResume() {
     bool retVal = false;
-    if(getDatamode() == AUDIO_LOCALFILE || m_streamType == ST_WEBSTREAM) {
+    if(getDatamode() == AUDIO_LOCALFILE || m_streamType == ST_WEBSTREAM || m_streamType == ST_WEBFILE) {
         m_f_running = !m_f_running;
         retVal = true;
     }
