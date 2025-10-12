@@ -533,11 +533,60 @@ void Audio::showstreamtitle(const char* ml) {
     // StreamTitle='Oliver Frank - Mega Hitmix';StreamUrl='www.radio-welle-woerthersee.at';
     // or adw_ad='true';durationMilliseconds='10135';adId='34254';insertionType='preroll';
 
-    int16_t idx1, idx2;
+    int16_t idx1, idx2, idx4, idx5, idx6, idx7, titleLen = 0, artistLen = 0;
     uint16_t i = 0, hash = 0;
 
-    idx1 = indexOf(ml, "StreamTitle=", 0);
-    if(idx1 >= 0){                                                              // Streamtitle found
+    idx1 = indexOf(ml, "StreamTitle=", 0);  // Streamtitle found
+
+    if(idx1 >= 0){
+        if(indexOf(ml, "xml version=", 12) > 0){
+
+            /* e.g. xmlStreamTitle
+            StreamTitle='<?xml version="1.0" encoding="utf-8"?><RadioInfo><Table><DB_ALBUM_ID>37364</DB_ALBUM_ID>
+            <DB_ALBUM_IMAGE>00000037364.jpg</DB_ALBUM_IMAGE><DB_ALBUM_NAME>Boyfriend</DB_ALBUM_NAME>
+            <DB_ALBUM_TYPE>Single</DB_ALBUM_TYPE><DB_DALET_ARTIST_NAME>DOVE CAMERON</DB_DALET_ARTIST_NAME>
+            <DB_DALET_ITEM_CODE>CD4161</DB_DALET_ITEM_CODE><DB_DALET_TITLE_NAME>BOYFRIEND</DB_DALET_TITLE_NAME>
+            <DB_FK_SITE_ID>2</DB_FK_SITE_ID><DB_IS_MUSIC>1</DB_IS_MUSIC><DB_LEAD_ARTIST_ID>26303</DB_LEAD_ARTIST_ID>
+            <DB_LEAD_ARTIST_NAME>Dove Cameron</DB_LEAD_ARTIST_NAME><DB_RADIO_IMAGE>cidadefm.jpg</DB_RADIO_IMAGE>
+            <DB_RADIO_NAME>Cidade</DB_RADIO_NAME><DB_SONG_ID>120126</DB_SONG_ID><DB_SONG_LYRIC>60981</DB_SONG_LYRIC>
+            <DB_SONG_NAME>Boyfriend</DB_SONG_NAME></Table><AnimadorInfo><TITLE>Cidade</TITLE>
+            <START_TIME_UTC>2022-11-15T22:00:00+00:00</START_TIME_UTC><END_TIME_UTC>2022-11-16T06:59:59+00:00
+            </END_TIME_UTC><SHOW_NAME>Cidade</SHOW_NAME><SHOW_HOURS>22h às 07h</SHOW_HOURS><SHOW_PANEL>0</SHOW_PANEL>
+            </AnimadorInfo></RadioInfo>';StreamUrl='';
+            */
+
+            idx4 = indexOf(ml, "<DB_DALET_TITLE_NAME>");
+            idx5 = indexOf(ml, "</DB_DALET_TITLE_NAME>");
+
+            idx6 = indexOf(ml, "<DB_LEAD_ARTIST_NAME>");
+            idx7 = indexOf(ml, "</DB_LEAD_ARTIST_NAME>");
+
+            if(idx4 == -1 || idx5 == -1) return;
+            idx4 += 21; // <DB_DALET_TITLE_NAME>
+            titleLen = idx5 - idx4;
+
+            if(idx6 != -1 && idx7 != -1){
+                idx6 += 21; // <DB_LEAD_ARTIST_NAME>
+                artistLen = idx7 - idx6;
+            }
+
+            char *title = NULL;
+            title = (char*)malloc(titleLen + artistLen + 4);
+            memcpy(title, ml + idx4, titleLen); title[titleLen] = '\0';
+
+            char *artist = NULL;
+            if(artistLen){
+                memcpy(title + titleLen, " - ", 3);
+                memcpy(title + titleLen + 3, ml + idx6, artistLen); title[titleLen + 3 + artistLen] = '\0';
+            }
+
+
+            if(title) if(audio_showstreamtitle) audio_showstreamtitle(title);
+            if(title)  {free(title); title = NULL;}
+            if(artist) {free(artist); artist = NULL;}
+            return;
+        }
+
         idx2 = indexOf(ml, ";", idx1);
         char *sTit;
         if(idx2 >= 0){sTit = strndup(ml + idx1, idx2 + 1); sTit[idx2] = '\0';}
