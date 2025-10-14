@@ -1610,8 +1610,11 @@ const char* Audio::parsePlaylist_M3U8() {
 
                 char* tmp = nullptr;
                 if(!startsWith(m_playlistContent[i], "http")){
-                    // http://livees.com/prog_index.m3u8 and prog_index48347.aac -->
-					// http://livees.com/prog_index48347.aac
+
+                        //  playlist:   http://station.com/aaa/bbb/xxx.m3u8
+                        //  chunklist:  http://station.com/aaa/bbb/ddd.aac
+                        //  result:     http://station.com/aaa/bbb/ddd.aac
+
                     if(m_lastM3U8host != 0){
                         tmp = (char*) malloc(strlen(m_lastM3U8host) + strlen(m_playlistContent[i]) + 1);
                         strcpy(tmp, m_lastM3U8host);
@@ -1620,21 +1623,26 @@ const char* Audio::parsePlaylist_M3U8() {
                         tmp = (char*) malloc(strlen(m_lastHost) + strlen(m_playlistContent[i]) + 1);
                         strcpy(tmp, m_lastHost);
                     }
-                    int idx = 0;
-                    if(indexOf(m_playlistContent[i], '/') == -1){
-                        //   playlist: http://as-hls-ww-live.akamaized.net/pool_904/live/ww/bbc_6music/bbc_6music.isml/bbc_6music-audio=96000.norewind.m3u8
-                        //   chunklist bbc_6music-audio=96000-268225824.ts
-                        //   result    http://as-hls-ww-live.akamaized.net/pool_904/live/ww/bbc_6music/bbc_6music.isml/bbc_6music-audio=96000-268225837.ts
-                        idx = lastIndexOf(tmp, "/");
+                    if(m_playlistContent[i][0] != '/'){
+
+                        //  playlist:   http://station.com/aaa/bbb/xxx.m3u8  // tmp
+                        //  chunklist:  ddd.aac                              // m_playlistContent[i]
+                        //  result:     http://station.com/aaa/bbb/ddd.aac   // m_playlistContent[i]
+
+                        int idx = lastIndexOf(tmp, "/");
+                        tmp[idx  + 1] = '\0';
+                        strcat(tmp, m_playlistContent[i]);
                     }
                     else{
-                        //   playlist: http://rtsradio-live.morescreens.com/RTS_2_001/audio/chunklist.m3u8 and
-                        //   chunklist /RTS_2_001/audio/2024-05-25-H14/audio-2024-05-25-14-39-36.ts
-                        //   result    http://rtsradio-live.morescreens.com/RTS_2_001/audio/2024-05-25-H14/audio-2024-05-25-14-39-36.ts
-                        //   must remove /RTS_2_001/audio.....
-                        idx = indexOf(tmp, '/', 8);
+
+                        //  playlist:   http://station.com/aaa/bbb/xxx.m3u8
+                        //  chunklist:  /aaa/bbb/ddd.aac
+                        //  result:     http://station.com/aaa/bbb/ddd.aac
+
+                        int idx = indexOf(tmp, "/", 8);
+                        tmp[idx] = '\0';
+                        strcat(tmp, m_playlistContent[i]);
                     }
-                    strcpy(tmp + idx + 1, m_playlistContent[i]);
                 }
                 else { tmp = strdup(m_playlistContent[i]); }
 
