@@ -2574,7 +2574,7 @@ bool Audio::connecttohost(const char* host, const char* user, const char* pwd) {
 
     //  AUDIO_INFO("Connect to \"%s\" on port %d, extension \"%s\"", hostwoext, port, extension);
 
-    char rqh[strlen(h_host) + strlen(authorization) + 200]; // http request header
+    char rqh[strlen(h_host) + strlen(authorization) + 220]; // http request header
     rqh[0] = '\0';
 
     strcat(rqh, "GET ");
@@ -2583,6 +2583,7 @@ bool Audio::connecttohost(const char* host, const char* user, const char* pwd) {
     strcat(rqh, "Host: ");
     strcat(rqh, hostwoext);
     strcat(rqh, "\r\n");
+    strcat(rqh, "Icy-MetaData:1\r\n");
     strcat(rqh, "Icy-MetaData:2\r\n");
     if (auth > 0) {
       strcat(rqh, "Authorization: Basic ");
