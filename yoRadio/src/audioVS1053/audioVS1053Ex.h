@@ -353,7 +353,16 @@ public:
     void     computeVUlevel();
     bool     eofHeader;
     // implement several function with respect to the index of string
+    void strlower(char *str){
+        unsigned char *p = (unsigned char *)str;
+        while (*p) {
+           *p = tolower((unsigned char)*p);
+            p++;
+        }
+    }
+
     bool startsWith (const char* base, const char* str) { return (strstr(base, str) - base) == 0;}
+
     bool endsWith (const char* base, const char* str) {
         int blen = strlen(base);
         int slen = strlen(str);

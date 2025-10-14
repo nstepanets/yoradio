@@ -2046,7 +2046,7 @@ bool Audio::parseContentType(char* ct) {
     enum : int {CT_NONE, CT_MP3, CT_AAC, CT_M4A, CT_WAV, CT_OGG, CT_FLAC, CT_PLS, CT_M3U, CT_ASX,
                 CT_M3U8, CT_TXT, CT_AACP};
 
-    strlwr(ct);
+    strlower(ct);
     trim(ct);
     m_codec = CODEC_NONE;
     int ct_val = CT_NONE;
