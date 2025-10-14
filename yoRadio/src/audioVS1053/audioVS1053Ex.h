@@ -40,6 +40,7 @@ extern __attribute__((weak)) void audio_id3album(const char*);
 extern __attribute__((weak)) void audio_id3title(const char*);
 extern __attribute__((weak)) void audio_beginSDread();
 extern __attribute__((weak)) void audio_id3image(File& file, const size_t pos, const size_t size); //ID3 metadata image
+extern __attribute__((weak)) void audio_id3lyrics(File& file, const size_t pos, const size_t size); //ID3 metadata lyrics
 extern __attribute__((weak)) void audio_eof_mp3(const char*);
 extern __attribute__((weak)) void audio_eof_speech(const char*);
 extern __attribute__((weak)) void audio_bitrate(const char*);
