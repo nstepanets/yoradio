@@ -1605,6 +1605,7 @@ const char* Audio::parsePlaylist_M3U8() {
                 f_EXTINF_found = true;
                 if(STfromEXTINF(m_playlistContent[i])) {showstreamtitle(m_chbuf);}
                 i++;
+                if(startsWith(m_playlistContent[i], "#")) i++;   // #MY-USER-CHUNK-DATA-1:ON-TEXT-DATA="20....
                 if(i == lines) continue; // and exit for()
 
                 char* tmp = nullptr;
