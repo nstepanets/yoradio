@@ -46,6 +46,7 @@ extern __attribute__((weak)) void audio_eof_speech(const char*);
 extern __attribute__((weak)) void audio_bitrate(const char*);
 extern __attribute__((weak)) void audio_commercial(const char*);
 extern __attribute__((weak)) void audio_icyurl(const char*);
+extern __attribute__((weak)) void audio_icylogo(const char*);
 extern __attribute__((weak)) void audio_icydescription(const char*);
 extern __attribute__((weak)) void audio_lasthost(const char*);
 extern __attribute__((weak)) void audio_eof_stream(const char*); // The webstream comes to an end

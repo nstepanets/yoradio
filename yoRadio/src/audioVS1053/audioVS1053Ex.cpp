@@ -2128,6 +2128,15 @@ bool Audio::parseHttpResponseHeader() { // this is the response to a GET / reque
             ; // do nothing Ambient, Rock, etc
         }
 
+        else if(startsWith(rhl, "icy-logo:")) {
+            char* c_icylogo = (rhl + 9);  // Get logo URL
+            trim(c_icylogo);
+            if(strlen(c_icylogo) > 0) {
+                if(m_f_Log) AUDIO_INFO("icy-logo: %s", c_icylogo);
+                if(audio_icylogo) audio_icylogo(c_icylogo);
+            }
+        }
+
         else if(startsWith(rhl, "icy-br:")) {
             const char* c_bitRate = (rhl + 7);
             int32_t br = atoi(c_bitRate); // Found bitrate tag, read the bitrate in Kbit
@@ -2148,7 +2157,7 @@ bool Audio::parseHttpResponseHeader() { // this is the response to a GET / reque
             char* c_icyname = (rhl + 9); // Get station name
             trim(c_icyname);
             if(strlen(c_icyname) > 0) {
-                if(!m_f_Log) AUDIO_INFO("icy-name: %s", c_icyname);
+                if(m_f_Log) AUDIO_INFO("icy-name: %s", c_icyname);
                 if(audio_showstation) audio_showstation(c_icyname);
             }
         }
@@ -2171,7 +2180,7 @@ bool Audio::parseHttpResponseHeader() { // this is the response to a GET / reque
         else if((startsWith(rhl, "transfer-encoding:"))){
             if(endsWith(rhl, "chunked") || endsWith(rhl, "Chunked") ) { // Station provides chunked transfer
                 m_f_chunked = true;
-                if(!m_f_Log) AUDIO_INFO("chunked data transfer");
+                if(m_f_Log) AUDIO_INFO("chunked data transfer");
                 m_chunkcount = 0;                         // Expect chunkcount in DATA
             }
         }
@@ -2574,7 +2583,7 @@ bool Audio::connecttohost(const char* host, const char* user, const char* pwd) {
     strcat(rqh, "Host: ");
     strcat(rqh, hostwoext);
     strcat(rqh, "\r\n");
-    strcat(rqh, "Icy-MetaData:1\r\n");
+    strcat(rqh, "Icy-MetaData:2\r\n");
     if (auth > 0) {
       strcat(rqh, "Authorization: Basic ");
       strcat(rqh, authorization);
