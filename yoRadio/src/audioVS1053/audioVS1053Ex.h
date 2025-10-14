@@ -370,10 +370,14 @@ public:
 
     bool startsWith (const char* base, const char* str) { return (strstr(base, str) - base) == 0;}
 
-    bool endsWith (const char* base, const char* str) {
-        int blen = strlen(base);
-        int slen = strlen(str);
-        return (blen >= slen) && (0 == strcmp(base + blen - slen, str));
+    bool endsWith(const char *base, const char *searchString) {
+        int32_t slen = strlen(searchString);
+        if(slen == 0) return false;
+        const char *p = base + strlen(base);
+    //  while(p > base && isspace(*p)) p--;  // rtrim
+        p -= slen;
+        if(p < base) return false;
+        return (strncmp(p, searchString, slen) == 0);
     }
 
     int indexOf (const char* base, const char* str, int startIndex = 0) {
