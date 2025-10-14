@@ -2838,8 +2838,8 @@ void Audio::unicode2utf8(char* buff, uint32_t len){
             }
         }
     }
-    buff[m] = 0;
     memcpy(buff, tmpbuff, m);
+    buff[m] = 0;
     free(tmpbuff);
 }
 //---------------------------------------------------------------------------------------------------------------------
@@ -2981,11 +2981,11 @@ int Audio::read_ID3_Header(uint8_t *data, size_t len) {
         return 6;
     }
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    if(m_controlCounter == 5){      // If the frame is larger than 256 bytes, skip the rest
-        if(framesize > 256){
-            framesize -= 256;
-            remainingHeaderBytes -= 256;
-            return 256;
+    if(m_controlCounter == 5){      // If the frame is larger than 512 bytes, skip the rest
+        if(framesize > 512){
+            framesize -= 512;
+            remainingHeaderBytes -= 512;
+            return 512;
         }
         else {
             m_controlCounter = 3; // check next frame
@@ -2996,7 +2996,6 @@ int Audio::read_ID3_Header(uint8_t *data, size_t len) {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     if(m_controlCounter == 6){      // Read the value
         m_controlCounter = 5;       // only read 256 bytes
-        char value[256];
         char ch = *(data + 0);
         bool isUnicode = (ch==1) ? true : false;
 
@@ -3012,31 +3011,31 @@ int Audio::read_ID3_Header(uint8_t *data, size_t len) {
         }
 
         size_t fs = framesize;
-        if(fs >255) fs = 255;
+        if(fs >512) fs = 512;
         for(int i=0; i<fs; i++){
-            value[i] = *(data + i);
+            m_ibuff[i] = *(data + i);
         }
         framesize -= fs;
         remainingHeaderBytes -= fs;
-        value[fs] = 0;
+        m_ibuff[fs] = 0;
         if(isUnicode && fs > 1) {
-            unicode2utf8(value, fs);   // convert unicode to utf-8 U+0020...U+07FF
+            unicode2utf8(m_ibuff, fs);   // convert unicode to utf-8 U+0020...U+07FF
         }
         if(!isUnicode){
             uint16_t j = 0, k = 0;
             j = 0;
             k = 0;
             while(j < fs) {
-                if(value[j] == 0x0A) value[j] = 0x20; // replace LF by space
-                if(value[j] > 0x1F) {
-                    value[k] = value[j];
+                if(m_ibuff[j] == 0x0A) m_ibuff[j] = 0x20; // replace LF by space
+                if(m_ibuff[j] > 0x1F) {
+                    m_ibuff[k] = m_ibuff[j];
                     k++;
                 }
                 j++;
             } //remove non printables
-            if(k>0) value[k] = 0; else value[0] = 0; // new termination
+            if(k>0) m_ibuff[k] = 0; else m_ibuff[0] = 0; // new termination
         }
-        showID3Tag(frameid, value);
+        showID3Tag(frameid, m_ibuff);
         return fs;
     }
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
