@@ -15,6 +15,7 @@ void audio_info(const char *info) {
   if (strstr(info, "format is flac") != NULL) { config.setBitrateFormat(BF_FLAC); display.putRequest(DBITRATE); }
   if (strstr(info, "format is mp3")  != NULL) { config.setBitrateFormat(BF_MP3); display.putRequest(DBITRATE); }
   if (strstr(info, "format is wav")  != NULL) { config.setBitrateFormat(BF_WAV); display.putRequest(DBITRATE); }
+  if (strstr(info, "format is ogg")  != NULL) { config.setBitrateFormat(BF_OGG); display.putRequest(DBITRATE); }
   if (strstr(info, "skip metadata") != NULL) config.setTitle(config.station.name);
   if (strstr(info, "Account already in use") != NULL || strstr(info, "HTTP/1.0 401") != NULL) {
     player.setError(info);
@@ -23,6 +24,10 @@ void audio_info(const char *info) {
   char* ici; char b[20]={0};
   if ((ici = strstr(info, "BitRate: ")) != NULL) {
     strlcpy(b, ici + 9, 50);
+    audio_bitrate(b);
+  }
+  else if ((ici = strstr(info, "bandwidth: ")) != NULL) {
+    strlcpy(b, ici + 11, 10);
     audio_bitrate(b);
   }
 }
@@ -73,13 +78,14 @@ void audio_error(const char *info) {
 }
 
 void audio_id3artist(const char *info){
+  if(config.getMode()==PM_WEB) return;
   if(printable(info)) config.setStation(info);
   display.putRequest(NEWSTATION);
   netserver.requestOnChange(STATION, 0);
 }
 
 void audio_id3album(const char *info){
-  if(player.lockOutput) return;
+  if(player.lockOutput || config.getMode()==PM_WEB) return;
   if(printable(info)){
     if(strlen(config.station.title)==0){
       config.setTitle(info);
