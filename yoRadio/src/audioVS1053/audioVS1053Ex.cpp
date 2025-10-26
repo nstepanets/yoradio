@@ -2463,6 +2463,7 @@ void Audio::setDefaults(){
     stopSong();
     initInBuff();                                           // initialize InputBuffer if not already done
     InBuff.resetBuffer();
+    if(m_playlistBuff){free(m_playlistBuff); m_playlistBuff = NULL;} // free if stream is not m3u8
     vector_clear_and_shrink(m_playlistURL);
     vector_clear_and_shrink(m_playlistContent);
     m_hashQueue.clear(); m_hashQueue.shrink_to_fit(); // uint32_t vector
@@ -2470,6 +2471,7 @@ void Audio::setDefaults(){
       if(_client) _client->stop();
       _client = static_cast<WiFiClient*>(&client); /* default to *something* so that no NULL deref can happen */
     }
+    ts_parsePacket(0, 0, 0); // reset ts routine
     if(m_lastM3U8host){free(m_lastM3U8host); m_lastM3U8host = NULL;}
 
     m_f_timeout = false;
@@ -2496,7 +2498,6 @@ void Audio::setDefaults(){
     m_streamType = ST_NONE;
     m_codec = CODEC_NONE;
     m_playlistFormat = FORMAT_NONE;
-    ts_parsePacket(0, 0, 0); // reset ts routine
     m_localBitrateSend = false;
     m_audioFileDuration = 0;
 }
