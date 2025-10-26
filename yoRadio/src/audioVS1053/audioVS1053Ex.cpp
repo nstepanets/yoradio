@@ -719,8 +719,9 @@ void Audio::loop(){
                 httpPrint(host);
             }
             else { // host == NULL means connect to m3u8 URL
-                httpPrint(m_lastM3U8host);
-                setDatamode(HTTP_RESPONSE_HEADER); // we have a new playlist now
+                if(m_lastM3U8host) httpPrint(m_lastM3U8host);
+                else               httpPrint(m_lastHost);        // if url has no first redirection
+                setDatamode(HTTP_RESPONSE_HEADER);               // we have a new playlist now
             }
             break;
         case AUDIO_DATA:
