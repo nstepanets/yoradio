@@ -264,7 +264,9 @@ size_t Audio::sendBytes(uint8_t* data, size_t len){
     }
     data_mode_off();
     // It is important to collect endFillByte while still in normal playback.
-    m_endFillByte = wram_read(0x1E06) & 0xFF;
+    if (ssVer > 3) {                                        // VS1073, VS1063, VS1053
+        m_endFillByte = wram_read(0x1E06) & 0xFF;
+    }
     return bytesDecoded;
 }
 //---------------------------------------------------------------------------------------------------------------------
