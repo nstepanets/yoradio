@@ -214,7 +214,7 @@ private:
     uint32_t        m_audioDataStart = 0;           // in bytes
     int             m_id3Size=0;                    // length id3 tag
     bool            m_f_ssl=false;
-    uint8_t         m_endFillByte ;                 // Byte to send when stopping song
+    uint8_t         m_endFillByte = 0;              // Byte to send when stopping song
     uint16_t        m_datamode=0;                   // Statemaschine
     bool            m_f_chunked = false ;           // Station provides chunked transfer
     bool            m_f_ctseen=false;               // First line of header seen or not
@@ -277,8 +277,6 @@ protected:
     void     wram_write ( uint16_t address, uint16_t data ) ;
     uint16_t wram_read ( uint16_t address ) ;
     void     showstreamtitle(const char* ml);
-    void     startSong() ;                               // Prepare to start playing. Call this each
-                                                         // time a new song starts.
     void     stopSong() ;                                // Finish playing a song. Call this after
                                                          // the last playChunk call.
     void     urlencode(char* buff, uint16_t buffLen, bool spacesOnly = false);
