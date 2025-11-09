@@ -2542,16 +2542,26 @@ void Audio::setDefaults(){
  * \warning This feature is only available with patches that support VU meter.
  * \n The VU meter takes about 0.2MHz of processing power with 48 kHz samplerate.
  */
-void Audio::setVUmeter() {
-  if(!VS_PATCH_ENABLE) return;
-  uint16_t MP3Status = read_register(SCI_STATUS);
-  if(MP3Status==0) {
-    Serial.println("VS1053 Error: Unable to write SCI_STATUS");
-    _vuInitalized = false;
-    return;
-  }
-  _vuInitalized = true;
-  write_register(SCI_STATUS, MP3Status | _BV(9));
+void Audio::setVUmeter(bool enable) {
+    uint16_t MP3Status = 0;
+
+    if(ssVer == 4 && VS_PATCH_ENABLE) {                     // VS1053 chip and flac patch enabled
+        MP3Status = read_register(SCI_STATUS);
+        if(MP3Status==0) {
+            Serial.println("VS1053 Error: Unable to write SCI_STATUS");
+            _vuInitalized = false;
+            return;
+        }
+        MP3Status = enable ? (MP3Status | _BV(9)) : (MP3Status & ~(_BV(9)));
+        write_register(SCI_STATUS, MP3Status);
+    } else if (ssVer == 6 || ssVer == 8) {                  // VS1063 or VS1073 chip
+        MP3Status = wram_read(0x1e09);                      // PAR_PLAY_MODE
+        MP3Status = enable ? (MP3Status | _BV(2)) : (MP3Status & ~(_BV(2)));
+        wram_write(0x1e09, MP3Status);
+    } else {
+        return;
+    }
+    _vuInitalized = enable;
 }
 
 //------------------------------------------------------------------------------
@@ -2568,20 +2578,22 @@ void Audio::setVUmeter() {
  */
 //const uint8_t everyn = 4;
 void Audio::computeVUlevel() {
-  /*if(!VS_PATCH_ENABLE) return;
-  static uint8_t cc = 0;
-  cc++;
-  if(!_vuInitalized || !config.store.vumeter || cc!=everyn) return;
-  if(cc==everyn) cc=0;*/
-  int16_t reg = read_register(SCI_AICTRL3);
-  vuLeft = map((uint8_t)(reg & 0x00FF), 85, 92, 0, 255);
-  vuRight = map((uint8_t)(reg >> 8), 85, 92, 0, 255);
+  int16_t reg = 0;
+
+  if (ssVer == 4) {                             // VS1053 chip
+    reg = read_register(SCI_AICTRL3);           // returns the values in 1 dB resolution from 0 (lowest) 95 (highest)
+    vuLeft = map((uint8_t)(reg & 0x00FF), 85, 92, 0, 255);
+    vuRight = map((uint8_t)(reg >> 8), 85, 92, 0, 255);
+  } else if (ssVer == 6 || ssVer == 8) {        // VS1063 or VS1073 chip
+    reg = wram_read(0x1E0C);                    // returns the values in 3 dB steps from 0 to 32
+    vuLeft = map((uint8_t)(reg >> 8), 85, 92, 0, 255);
+    vuRight = map((uint8_t)(reg & 0x00FF), 85, 92, 0, 255);
+  }
   if(vuLeft>config.vuThreshold)  config.vuThreshold=vuLeft;
   if(vuRight>config.vuThreshold) config.vuThreshold=vuRight;
 }
 
 uint16_t Audio::get_VUlevel(uint16_t dimension){
-  if(!VS_PATCH_ENABLE) return 0;
   if(!_vuInitalized || !config.store.vumeter/* || config.vuThreshold==0*/) return 0;
   computeVUlevel();
   uint8_t L = map(vuLeft, config.vuThreshold, 0, 0, dimension);
