@@ -170,7 +170,6 @@ Audio::Audio(uint8_t _cs_pin, uint8_t _dcs_pin, uint8_t _dreq_pin, SPIClass *spi
     #define AUDIO_INFO(...) {sprintf(m_ibuff,__VA_ARGS__); if(audio_info) audio_info(m_ibuff);}
 
     clientsecure.setInsecure();                 // update to ESP32 Arduino version 1.0.5-rc05 or higher
-    m_endFillByte=0;
     curvol=50;
     m_LFcount=0;
 }
@@ -264,6 +263,8 @@ size_t Audio::sendBytes(uint8_t* data, size_t len){
         bytesDecoded += chunk_length;
     }
     data_mode_off();
+    // It is important to collect endFillByte while still in normal playback.
+    m_endFillByte = wram_read(0x1E06) & 0xFF;
     return bytesDecoded;
 }
 //---------------------------------------------------------------------------------------------------------------------
@@ -371,10 +372,10 @@ void Audio::begin(){
     write_register(SCI_MODE, _BV (SM_SDINEW) | _BV(SM_LINE1));
 
     await_data_request();
-    //set vu meter
+    // Set vu meter
     setVUmeter();
-    m_endFillByte = wram_read(0x1E06) & 0xFF;
-    //  printDetails("After last clocksetting \n");
+    // m_endFillByte = wram_read(0x1E06) & 0xFF;
+    // printDetails("After last clocksetting \n");
     if(VS_PATCH_ENABLE) loadUserCode(); // load in VS1053B if you want to play flac
 }
 //---------------------------------------------------------------------------------------------------------------------
@@ -475,10 +476,6 @@ void Audio::setBalance(int8_t bal){
 //---------------------------------------------------------------------------------------------------------------------
 uint8_t Audio::getVolume(){                                 // Get the currenet volume setting.
     return curvol;
-}
-//----------------------------------------------------------------------------------------------------------------------
-void Audio::startSong(){
-    sdi_send_fillers(vs1053_chunk_size * 54);
 }
 //---------------------------------------------------------------------------------------------------------------------
 void Audio::stopSong(){
