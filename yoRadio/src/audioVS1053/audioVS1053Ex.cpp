@@ -348,8 +348,25 @@ void Audio::begin(){
 
     // Switch on the analog parts
     write_register(SCI_AUDATA, 44100 + 1);                  // 44.1kHz + stereo
-    // The next clocksetting allows SPI clocking at 5 MHz, 4 MHz is safe then.
-    write_register(SCI_CLOCKF, 6 << 12);                    // Normal clock settings multiplyer 3.0=12.2 MHz
+
+    // Set the clock depending on the VS10xx type
+    uint16_t clockConfig;
+    switch (ssVer) {
+        case 3:                             // VS1003
+            clockConfig = 0x8000 | 0x1000;  // SC_MULT=3.0×, SC_ADD=1.0×
+            break;
+        case 6:                             // VS1063
+            clockConfig = 0x8000 | 0x1000;  // SC_MULT=3.5×, SC_ADD=1.5×
+            break;
+        case 8:                             // VS1073
+            clockConfig = 0x8000;           // SC_MULT=5.5×
+            break;
+        default:                            // VS1053
+            clockConfig = 0x6000 | 0x0800;  // SC_MULT=3.0×, SC_ADD=1.0×
+            break;
+    }
+    write_register(SCI_CLOCKF, clockConfig);
+
     VS1053_SPI = SPISettings(6700000, MSBFIRST, SPI_MODE0); // SPIDIV 12 -> 80/12=6.66 MHz
     write_register(SCI_MODE, _BV (SM_SDINEW) | _BV(SM_LINE1));
 
