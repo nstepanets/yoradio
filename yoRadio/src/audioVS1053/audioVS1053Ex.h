@@ -295,7 +295,7 @@ protected:
     const char* parsePlaylist_PLS();
     const char* parsePlaylist_ASX();
     const char* parsePlaylist_M3U8();
-    const char* m3u8redirection();
+    const char* m3u8redirection(uint8_t* codec);
     uint64_t m3u8_findMediaSeqInURL();
     bool     STfromEXTINF(char* str);
     size_t   process_m3u8_ID3_Header(uint8_t* packet);
