@@ -200,6 +200,7 @@ private:
     char*           m_lastM3U8host = NULL;          // Store the last M3U8-URL to a webstream
     char*           m_playlistBuff = NULL;          // stores playlistdata
     uint8_t         m_codec = CODEC_NONE;           //
+    uint8_t         m_m3u8Codec = CODEC_AAC;        // codec of m3u8 stream
     uint8_t         m_expectedCodec = CODEC_NONE;   // set in connecttohost (e.g. http://url.mp3 -> CODEC_MP3)
     uint8_t         m_expectedPlsFmt = FORMAT_NONE; // set in connecttohost (e.g. streaming01.m3u) -> FORMAT_M3U)
     uint8_t         m_streamType = ST_NONE;

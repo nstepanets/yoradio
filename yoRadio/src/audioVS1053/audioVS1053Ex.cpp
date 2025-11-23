@@ -1578,7 +1578,7 @@ const char* Audio::parsePlaylist_M3U8() {
                 uint8_t codec = CODEC_NONE;
                 ret = m3u8redirection(&codec);
                 if(ret) {
-                    m_codec = codec; // can be AAC or MP3
+                    m_m3u8Codec = codec; // can be AAC or MP3
                     return ret;
                 }
             }
@@ -2360,7 +2360,7 @@ bool Audio::parseContentType(char* ct) {
     else if(!strcmp(ct, "audio/aac"))        ct_val = CT_AAC;
     else if(!strcmp(ct, "audio/x-aac"))      ct_val = CT_AAC;
     else if(!strcmp(ct, "audio/aacp"))       ct_val = CT_AAC;
-    else if(!strcmp(ct, "video/mp2t"))       ct_val = CT_AAC;
+    else if(!strcmp(ct, "video/mp2t")){      ct_val = CT_AAC; if(m_m3u8Codec == CODEC_MP3) ct_val = CT_MP3;} // see m3u8redirection()
     else if(!strcmp(ct, "audio/mp4"))        ct_val = CT_M4A;
     else if(!strcmp(ct, "audio/m4a"))        ct_val = CT_M4A;
 
@@ -3840,7 +3840,7 @@ bool Audio::ts_parsePacket(uint8_t* packet, uint8_t* packetStart, uint8_t* packe
                     int elementaryPID = ((packet[PLS + cursor + 1] & 0x1F) << 8) | (packet[PLS + cursor + 2] & 0xFF);
                     if(m_f_Log) log_i("Stream Type: 0x%02X Elementary PID: 0x%04X", streamType, elementaryPID);
 
-                    if(streamType == 0x0F || streamType == 0x11) {
+                    if(streamType == 0x0F || streamType == 0x11 || streamType == 0x04) {
                         if(m_f_Log) log_i("AAC PID discover");
                         pidOfAAC= elementaryPID;
                     }
