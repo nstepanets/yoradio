@@ -1582,7 +1582,7 @@ const char* Audio::parsePlaylist_M3U8() {
                     return ret;
                 }
             }
-            if(m_codec == CODEC_NONE) m_codec = CODEC_AAC; // if we have no redirection
+            if(m_codec == CODEC_NONE) {m_codec = CODEC_AAC; if(m_m3u8Codec == CODEC_MP3) m_codec = CODEC_MP3;}  // if we have no redirection
 
             // "#EXT-X-DISCONTINUITY-SEQUENCE: // not used, 0: seek for continuity numbers, is sometimes not set
             // "#EXT-X-MEDIA-SEQUENCE:"        // not used, is unreliable
