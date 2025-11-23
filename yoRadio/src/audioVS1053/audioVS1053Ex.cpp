@@ -1789,6 +1789,13 @@ const char* Audio::m3u8redirection(uint8_t* codec){
         if(cS == 0)            *codec = CODEC_MP3;
         if(cS > 0 && cS < 100) *codec = CODEC_AAC;
     }
+
+    if(cS == 100) {                             // "mp4a.xx.xx" not found
+        *codec = CODEC_AAC;                     // assume AAC
+        for(uint16_t i = 0; i < plcSize; i++) { // we have no codeString, looking for "http"
+            if(startsWith(m_playlistContent[i], "#EXT-X-STREAM-INF")) choosenLine = i;
+        }
+    }
     
     char* tmp = nullptr;
     
