@@ -1005,7 +1005,10 @@ void Audio::processWebStreamTS() {
                     return;
                 }
             }
-            ts_parsePacket(&ts_packet[0], &ts_packetStart, &ts_packetLength);
+
+            if(!ts_parsePacket(&ts_packet[0], &ts_packetStart, &ts_packetLength)){
+                f_chunkFinished = true; // something went wrong
+            }
 
             if(ts_packetLength) {
                 size_t ws = InBuff.writeSpace();
@@ -1024,7 +1027,8 @@ void Audio::processWebStreamTS() {
                 f_chunkFinished = true;
                 byteCounter = 0;
             }
-            if(byteCounter > m_contentlength) log_e("byteCounter overflow");
+            if(m_contentlength && byteCounter > m_contentlength) {log_e("byteCounter overflow, byteCounter: %d, contentlength: %d", byteCounter, m_contentlength); return;}
+            if(chunkSize       && byteCounter > chunkSize)       {log_e("byteCounter overflow, byteCounter: %d, chunkSize: %d",     byteCounter, chunkSize); return;}
         }
 
     }
