@@ -414,6 +414,7 @@ public:
         }
         return result;
     }
+
     int specialIndexOf (uint8_t* base, const char* str, int baselen, bool exact = false){
         int result = 0;  // seek for str in buffer or in header up to baselen, not nullterninated
         if (strlen(str) > baselen) return -1; // if exact == true seekstr in buffer must have "\0" at the end
@@ -429,6 +430,14 @@ public:
         }
         return result;
     }
+    
+    int32_t min3(int32_t a, int32_t b, int32_t c){
+        uint32_t min_val = a;
+        if (b < min_val) min_val = b;
+        if (c < min_val) min_val = c;
+        return min_val;
+    }
+
     size_t bigEndian(uint8_t* base, uint8_t numBytes, uint8_t shiftLeft = 8){
         size_t result = 0;
         if(numBytes < 1 or numBytes > 4) return 0;
