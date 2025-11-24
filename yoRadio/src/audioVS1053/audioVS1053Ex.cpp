@@ -1873,7 +1873,7 @@ uint64_t Audio::m3u8_findMediaSeqInURL(){ // We have no clue what the media sequ
             if(idx == 3) break;
         }
     }
-    if(idx < 3){
+    if(idx < 2){
         log_e("not enough lines with \"#EXTINF:\" found");
         return UINT64_MAX;
     }
