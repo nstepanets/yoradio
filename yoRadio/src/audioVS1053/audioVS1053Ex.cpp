@@ -2773,10 +2773,10 @@ bool Audio::connecttohost(const char* host, const char* user, const char* pwd) {
         if(endsWith(extension, "-flac"))   m_expectedCodec = CODEC_FLAC;
         if(endsWith(extension, ".opus"))   m_expectedCodec = CODEC_OPUS;
         if(endsWith(extension, "/opus"))   m_expectedCodec = CODEC_OPUS;
-        if(endsWith(extension, ".asx" ))  m_expectedPlsFmt = FORMAT_ASX;
-        if(endsWith(extension, ".m3u" ))  m_expectedPlsFmt = FORMAT_M3U;
-        if(endsWith(extension, ".pls" ))  m_expectedPlsFmt = FORMAT_PLS;
-        if(endsWith(extension, ".m3u8")){ m_expectedPlsFmt = FORMAT_M3U8; if(audio_lasthost) audio_lasthost(host);}
+        if(endsWith(extension, ".asx" ))    m_expectedPlsFmt = FORMAT_ASX;
+        if(endsWith(extension, ".m3u" ))    m_expectedPlsFmt = FORMAT_M3U;
+        if(endsWith(extension, ".pls" ))    m_expectedPlsFmt = FORMAT_PLS;
+        if(indexOf( h_host, ".m3u8") >= 0){ m_expectedPlsFmt = FORMAT_M3U8; if(audio_lasthost) audio_lasthost(m_lastHost);}
 
         setDatamode(HTTP_RESPONSE_HEADER);   // Handle header
         m_streamType = ST_WEBSTREAM;
