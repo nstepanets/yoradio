@@ -1725,6 +1725,7 @@ const char* Audio::parsePlaylist_M3U8() {
     else {
         if(f_EXTINF_found){
             if(f_mediaSeq_found){
+                if(m_playlistContent.size() == 0) return NULL;
                 uint64_t mediaSeq = m3u8_findMediaSeqInURL();
                 if(xMedSeq == 0 || xMedSeq == UINT64_MAX) {log_e("xMediaSequence not found"); connecttohost(m_lastHost);}
                 if(mediaSeq < xMedSeq){
@@ -1749,7 +1750,9 @@ const char* Audio::parsePlaylist_M3U8() {
                     }
                 }
                 else{
-                    log_e("err, %u packets lost from %u, to %u", mediaSeq - xMedSeq, xMedSeq, mediaSeq);
+                    if(mediaSeq != UINT64_MAX){
+                        log_e("err, %u packets lost from %u, to %u", mediaSeq - xMedSeq, xMedSeq, mediaSeq);
+                    }
                     xMedSeq = mediaSeq;
                 }
             } // f_medSeq_found
