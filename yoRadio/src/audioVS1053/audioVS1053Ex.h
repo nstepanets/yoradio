@@ -224,7 +224,6 @@ private:
     bool            m_f_Log = false;                // set in platformio.ini  -DAUDIO_LOG and -DCORE_DEBUG_LEVEL=3 or 4
     bool            m_f_continue = false;           // next m3u8 chunk is available
     bool            m_f_ts = true;                  // transport stream
-    bool            m_f_webfile = false;
     bool            m_f_firstCall = false;          // InitSequence for processWebstream and processLokalFile
     bool            m_f_firstM3U8call = false;      // InitSequence for m3u8 parsing
     bool            m_f_m3u8data = false;           // used in processM3U8entries
@@ -246,7 +245,6 @@ private:
     uint16_t        m_m3u8_targetDuration = 10;     //
     int             m_controlCounter = 0;           // Status within readID3data() and readWaveHeader()
     bool            m_f_running = false;
-    bool            m_f_webstream = false ;         // Play from URL
     bool            m_f_ogg=false;                  // Set if oggstream
     bool            m_f_stream_ready=false;         // Set after connecttohost and first streamdata are available
     bool            m_f_unsync = false;

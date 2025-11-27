@@ -457,8 +457,6 @@ void Audio::stopSong(){
       audiofile.close();
     }
     setDatamode(AUDIO_NONE);
-    m_f_webfile = false;
-    m_f_webstream = false;
     m_f_running = false;
 
     sdi_send_fillers(vs1053_chunk_size * 54);
@@ -2482,7 +2480,6 @@ uint32_t Audio::stop_mp3client(){
     }
     stopSong();
     int v=read_register(SCI_VOL);
-    m_f_webstream = false;
     m_f_running = false;
     write_register(SCI_VOL, 0);                         // Mute while stopping
     #ifdef ESP_ARDUINO_3
@@ -2523,8 +2520,6 @@ void Audio::setDefaults(){
     m_f_chunked=false;                                      // Assume not chunked
     m_f_ssl=false;
     m_f_metadata = false;
-    m_f_webfile = false;
-    m_f_webstream = false;
     m_f_tts = false;                                        // text to speech
     m_f_ts = false;
     m_f_m3u8data = false;                                   // set again in processM3U8entries() if necessary
@@ -3102,7 +3097,6 @@ bool Audio::connecttospeech(const char* speech, const char* lang){
     sprintf(m_chbuf, "SSL has been established, free Heap: %lu bytes", ESP.getFreeHeap());
     if(audio_info) audio_info(m_chbuf);
 
-    m_f_webstream = true;
     m_f_running = true;
     m_f_ssl = true;
     m_f_tts = true;
