@@ -972,6 +972,7 @@ void Audio::processWebStreamTS() {
         ts_packetPtr = 0;
         m_controlCounter = 0;
         m_f_firstCall = false;
+        m_f_m3u8data = true;
     }
 
     if(getDatamode() != AUDIO_DATA) return;        // guard
@@ -1099,6 +1100,7 @@ void Audio::processWebStreamHLS() {
         ID3ReadPtr = 0;
         m_t0 = millis();
         m_f_firstCall = false;
+        m_f_m3u8data = true;
         firstBytes = true;
         ID3Buff = (uint8_t*)malloc(ID3BuffSize);
         m_controlCounter = 0;
