@@ -2330,7 +2330,7 @@ bool Audio::parseHttpResponseHeader() { // this is the response to a GET / reque
         if(audio_icydescription) audio_icydescription("");
         if(audio_icyurl) audio_icyurl("");
         if(m_playlistFormat == FORMAT_M3U8) return false;
-        m_lastHost[0] = '\0';
+        // m_lastHost[0] = '\0';
         setDatamode(AUDIO_NONE);
         stopSong();
         return false;
