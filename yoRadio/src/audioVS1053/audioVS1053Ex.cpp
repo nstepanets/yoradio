@@ -1120,7 +1120,7 @@ void Audio::processWebStreamHLS() {
             if(m_controlCounter < 100){
                 int res = read_ID3_Header(&ID3Buff[ID3ReadPtr], ID3BuffSize - ID3ReadPtr);
                 if(res >= 0) ID3ReadPtr += res;
-                if(ID3ReadPtr > ID3BuffSize) {log_e("buffer overflow"); stopSong(); return;}
+                if(ID3ReadPtr > ID3BuffSize) {AUDIO_INFO("ID3 buffer overflow, use PSRAM to play this stream!"); stopSong(); return;}
                 return;
             }
             if(m_controlCounter != 100) return;
@@ -2118,7 +2118,7 @@ bool Audio::parseHttpResponseHeader() { // this is the response to a GET / reque
       return false;
     }
     notavailablefor = 0;
-    char rhl[512]; // responseHeaderline
+    char rhl[512] = {0}; // responseHeaderline
     bool ct_seen = false;
     uint32_t ctime = millis();
     uint32_t timeout = 2500; // ms
@@ -2785,7 +2785,7 @@ bool Audio::connecttohost(const char* host, const char* user, const char* pwd) {
         if(audio_showstreamtitle) audio_showstreamtitle("");
         if(audio_icydescription) audio_icydescription("");
         if(audio_icyurl) audio_icyurl("");
-        m_lastHost[0] = 0;
+        m_lastHost[0] = '\0';
     }
     if(hostwoext) {free(hostwoext); hostwoext = NULL;}
     if(extension) {free(extension); extension = NULL;}
