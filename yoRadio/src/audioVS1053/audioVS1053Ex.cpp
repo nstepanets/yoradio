@@ -263,8 +263,6 @@ size_t Audio::sendBytes(uint8_t* data, size_t len){
         bytesDecoded += chunk_length;
     }
     data_mode_off();
-    // It is important to collect endFillByte while still in normal playback.
-    m_endFillByte = wram_read(0x1E06) & 0xFF;
     return bytesDecoded;
 }
 //---------------------------------------------------------------------------------------------------------------------
@@ -453,11 +451,17 @@ uint8_t Audio::getVolume(){                                 // Get the currenet 
 void Audio::stopSong(){
     uint16_t modereg;                                       // Read from mode register
     int i;                                                  // Loop control
+
+    if(m_f_running) {
+        // It is important to collect endFillByte while still in normal playback
+        m_endFillByte = wram_read(0x1E06) & 0xFF;
+        m_f_running = false;
+    }
+
     if(audiofile){
       audiofile.close();
     }
     setDatamode(AUDIO_NONE);
-    m_f_running = false;
 
     sdi_send_fillers(vs1053_chunk_size * 54);
     delay(10);
