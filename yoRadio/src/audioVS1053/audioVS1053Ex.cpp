@@ -456,30 +456,29 @@ void Audio::stopSong(){
         // It is important to collect endFillByte while still in normal playback
         m_endFillByte = wram_read(0x1E06) & 0xFF;
         m_f_running = false;
+
+        sdi_send_fillers(vs1053_chunk_size * 54);
+        delay(10);
+        write_register(SCI_MODE, _BV (SM_SDINEW) | _BV(SM_CANCEL));
+        for(i=0; i < 200; i++) {
+            sdi_send_fillers(vs1053_chunk_size);
+            modereg = read_register(SCI_MODE);  // Read status
+            if((modereg & _BV(SM_CANCEL)) == 0) {
+                sdi_send_fillers(vs1053_chunk_size * 54);
+                sprintf(m_chbuf, "Song stopped correctly after %d msec", i * 10);
+                if(audio_info) audio_info(m_chbuf);
+                return;
+            }
+            delay(10);
+        }
+        if(audio_info) audio_info("Song stopped incorrectly!");
+        printDetails("after song stopped incorrectly");
     }
 
     if(audiofile){
       audiofile.close();
     }
     setDatamode(AUDIO_NONE);
-
-    sdi_send_fillers(vs1053_chunk_size * 54);
-    delay(10);
-    write_register(SCI_MODE, _BV (SM_SDINEW) | _BV(SM_CANCEL));
-    for(i=0; i < 200; i++) {
-        sdi_send_fillers(vs1053_chunk_size);
-        modereg = read_register(SCI_MODE);  // Read status
-        if((modereg & _BV(SM_CANCEL)) == 0) {
-            sdi_send_fillers(vs1053_chunk_size * 54);
-            sprintf(m_chbuf, "Song stopped correctly after %d msec", i * 10);
-            m_f_running = false;
-            if(audio_info) audio_info(m_chbuf);
-            return;
-        }
-        delay(10);
-    }
-    if(audio_info) audio_info("Song stopped incorrectly!");
-    printDetails("after song stopped incorrectly");
 }
 //---------------------------------------------------------------------------------------------------------------------
 void Audio::softReset()
